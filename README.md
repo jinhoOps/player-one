@@ -51,7 +51,7 @@ npm run build                # 정적 export → out/
 
 | 경로 | 내용 |
 |---|---|
-| `src/app/` | 페이지 (`/`, `/auth/callback`, `/me`, `/me/items`, `/p`, `/settings`) |
+| `src/app/` | 페이지 (`/`, `/auth/callback`, `/me`, `/me/items`, `/p`, `/village`, `/settings`) |
 | `src/components/` | HudPanel, StatRow, EquipSlot, TierBadge, VisibilityToggle, CharacterViewport(R3F) |
 | `src/lib/` | Supabase 클라이언트, 게임 어휘(클래스·티어), 이벤트 스토어(zustand), 모션 토큰 |
 | `supabase/migrations/` | `profiles`·`items` 테이블, RLS, `get_public_profile`·`get_public_trophies` RPC |
@@ -76,7 +76,7 @@ MVP. 로그인 → 캐릭터 시트(인라인 편집, 장비 팝오버, 필드�
 
 ## 3D 모델 크레딧
 
-캐릭터와 마을(`/lab/village`)에 쓰는 모델. 원본 라이선스 파일은 `public/models/*/license.txt`.
+캐릭터와 마을(`/village`)에 쓰는 모델. 원본 라이선스 파일은 `public/models/*/license.txt`.
 
 - This work is based on "Free Pack - Chibi Base Mesh (Rigged)" (https://sketchfab.com/3d-models/free-pack-chibi-base-mesh-rigged-fed4fb329f224f1594f631eae8d2626b) by DuNguyn Studio (https://sketchfab.com/dunguyn) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
 - This work is based on "Medieval Fantasy Book" (https://sketchfab.com/3d-models/medieval-fantasy-book-06d5a80a04fc4c5ab552759e9a97d91a) by Pixel (https://sketchfab.com/stefan.lengyel1) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
