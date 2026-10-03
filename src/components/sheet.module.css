@@ -160,17 +160,27 @@
     height: auto;
     padding: calc(var(--space) * 4);
   }
+  /* The stage and rail stay pinned under the top bar and shrink as panels
+     scroll up (CharacterSheet sets --stage-h). */
   .stageWrap {
+    position: sticky;
+    top: 64px;
+    z-index: 5;
     display: flex;
     flex-direction: column;
-    gap: calc(var(--space) * 3);
+    gap: calc(var(--space) * 2);
+    padding-bottom: calc(var(--space) * 2);
+    background: var(--bg);
   }
   .stage {
-    height: 52vh;
-    min-height: 340px;
+    height: var(--stage-h, 52vh);
+    min-height: 200px;
   }
+  /* Give back what the stage gave up, so the page keeps its length and the
+     scroll doesn't stall as the stage shrinks. */
   .side {
     overflow: visible;
+    padding-bottom: calc(52vh - var(--stage-h, 52vh) + 8px);
   }
   .rail {
     position: static;

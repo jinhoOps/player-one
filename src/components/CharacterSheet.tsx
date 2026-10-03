@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { bootOnce } from "@/lib/events";
 import { CLASSES, EQUIP_SLOTS, SLOT_LABELS, type ClassKey, type EquipSlotKey } from "@/lib/game";
 import type { BodyMorph } from "@/lib/morph";
@@ -78,6 +78,29 @@ export function CharacterSheet({
     bootOnce();
   }, []);
 
+  // Mobile: as the panels scroll up, the pinned stage shrinks from 52vh to 28vh
+  // so the character stays in view (docs/DESIGN.md §4).
+  const sheet = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 900px)");
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      const vh = window.innerHeight / 100;
+      const h = mq.matches ? Math.max(28 * vh, 52 * vh - window.scrollY) : 0;
+      sheet.current?.style.setProperty("--stage-h", mq.matches ? `${h}px` : "");
+    };
+    const onScroll = () => (frame ||= requestAnimationFrame(update));
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    mq.addEventListener("change", update);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", onScroll);
+      mq.removeEventListener("change", update);
+    };
+  }, []);
+
   const slot = (k: EquipSlotKey, side: "left" | "right") => (
     <div key={k} className={s.slotWrap}>
       <EquipSlot
@@ -103,7 +126,7 @@ export function CharacterSheet({
   >;
 
   return (
-    <div className={s.sheet}>
+    <div ref={sheet} className={s.sheet}>
       <EffectLayer />
       <div className={s.stageWrap}>
         <div className={s.stage} data-stage>
