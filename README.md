@@ -7,7 +7,7 @@
 - **Base Stats** — 키, 몸무게, 골격근량, 체지방률
 - **Equipment Slots** — 투구·상의·하의·신발 슬롯에 실제 의상 사이즈를 장비 규격으로 기록
 - **Class / Wealth Tier** — 직업군을 RPG 클래스로, 자산을 레어리티 구간으로
-- **3D Avatar** — 신체 스탯과 장비가 반영된 SD 토이 캐릭터
+- **3D Avatar** — 신체 스탯과 장비가 반영된 치비 토이 캐릭터
 - **필드 단위 공개 설정** — 모든 항목에 자물쇠, 타인 시점 미리보기
 
 ## 기술 스택
@@ -67,7 +67,7 @@ npm run build                # 정적 export → out/
 ## 상태
 
 MVP. 로그인 → 캐릭터 시트(인라인 편집, 장비 팝오버, 필드별 공개 설정) → 공개 프로필.
-브랜드는 Cozy Quest(흰 바탕·리프 그린·Jua, 캐릭터 무대만 크림 톤), 3D는 절차적 SD 토이 캐릭터, 이펙트 카탈로그(docs/BRAND.md §7)가 구현되어 있다.
+브랜드는 Cozy Quest(흰 바탕·리프 그린·Jua, 캐릭터 무대만 크림 톤), 3D는 리깅된 치비 캐릭터(뼈 크기로 체형 반영), 이펙트 카탈로그(docs/BRAND.md §7)가 구현되어 있다.
 남은 것: 상의·하의·신발의 장비 형태 변화(현재는 색으로만 표시).
 
 ## License
@@ -76,7 +76,7 @@ MVP. 로그인 → 캐릭터 시트(인라인 편집, 장비 팝오버, 필드�
 
 ## 3D 모델 크레딧
 
-시험판(`/lab`, `/lab/village`)에 쓰는 모델. 원본 라이선스 파일은 `public/models/*/license.txt`.
+캐릭터와 마을(`/lab/village`)에 쓰는 모델. 원본 라이선스 파일은 `public/models/*/license.txt`.
 
 - This work is based on "Free Pack - Chibi Base Mesh (Rigged)" (https://sketchfab.com/3d-models/free-pack-chibi-base-mesh-rigged-fed4fb329f224f1594f631eae8d2626b) by DuNguyn Studio (https://sketchfab.com/dunguyn) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
 - This work is based on "Medieval Fantasy Book" (https://sketchfab.com/3d-models/medieval-fantasy-book-06d5a80a04fc4c5ab552759e9a97d91a) by Pixel (https://sketchfab.com/stefan.lengyel1) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

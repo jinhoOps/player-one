@@ -1,4 +1,5 @@
 import { animate } from "animejs";
+import { useMemo, useRef } from "react";
 
 // Motion tokens (docs/BRAND.md, Motion): things settle with a soft overshoot,
 // like a toy set down on a table.
@@ -27,4 +28,17 @@ export function rollNumber(el: HTMLElement, from: number, to: number, digits = 1
       el.textContent = obj.v.toFixed(digits);
     },
   });
+}
+
+/** Start time of a one-shot effect; progress() is 0→1 while it runs, ≥1 after. */
+export function useOneShot() {
+  const start = useRef(-Infinity);
+  return useMemo(
+    () => ({
+      fire: (delay = 0) => (start.current = performance.now() + delay),
+      finish: () => (start.current = -Infinity),
+      progress: (ms: number) => (performance.now() - start.current) / ms,
+    }),
+    [],
+  );
 }

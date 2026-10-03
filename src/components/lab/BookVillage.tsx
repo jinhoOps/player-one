@@ -11,7 +11,8 @@ import { ClassEmblem } from "@/components/ClassEmblem";
 import type { ClassKey, EquipSlotKey } from "@/lib/game";
 import { PHASES, type Phase } from "@/lib/daylight";
 import type { BodyMorph } from "@/lib/morph";
-import { Chibi, TOY_TINT } from "./ChibiViewport";
+import { TOY_TINT } from "@/lib/chibiRig";
+import { Chibi } from "../Chibi";
 import x from "./village.module.css";
 
 export const BOOK_URL = "/models/book/scene.gltf";
