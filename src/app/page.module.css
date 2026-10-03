@@ -1,32 +1,69 @@
 .landing {
-  min-height: 100vh;
-  display: grid;
-  place-items: center;
-  text-align: center;
+  max-width: 1120px;
+  margin: 0 auto;
   padding: calc(var(--space) * 6);
 }
 
-.logo {
-  font-family: var(--font-mono);
-  font-size: clamp(32px, 7vw, 72px);
-  letter-spacing: 0.08em;
+.header {
+  padding-block: calc(var(--space) * 2) calc(var(--space) * 6);
 }
 
-.tagline {
-  margin-top: calc(var(--space) * 3);
+.hero {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(380px, 100%), 1fr));
+  align-items: center;
+  gap: calc(var(--space) * 8);
+}
+
+.headline {
+  font-size: clamp(36px, 6vw, 60px);
+  line-height: 1.12;
+  text-wrap: balance;
+}
+
+.lede {
+  margin-top: calc(var(--space) * 4);
+  max-width: 34ch;
+  font-size: 17px;
+  line-height: 1.6;
   color: var(--text-dim);
+  text-wrap: pretty;
 }
 
-.start {
-  margin-top: calc(var(--space) * 10);
+.cta {
+  margin-top: calc(var(--space) * 8);
+  padding: calc(var(--space) * 3.5) calc(var(--space) * 7);
+  font-size: 16px;
 }
 
-.blink {
-  animation: blink 1.2s steps(2, start) infinite;
+.stage {
+  height: min(560px, 70vh);
+  border-radius: var(--radius-lg);
+  border: 1.5px solid var(--line);
+  background: radial-gradient(120% 70% at 50% 30%, #fffdf8 0%, var(--surface-soft) 45%, var(--bg-deep) 100%);
+  box-shadow: var(--lift);
+  overflow: hidden;
 }
 
-@keyframes blink {
-  to {
-    visibility: hidden;
-  }
+.points {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
+  gap: calc(var(--space) * 4);
+  margin-block: calc(var(--space) * 12) calc(var(--space) * 6);
+}
+.points li {
+  padding: calc(var(--space) * 5);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1.5px solid var(--line);
+  box-shadow: var(--lift);
+}
+.points h2 {
+  font-size: 20px;
+  margin-bottom: calc(var(--space) * 2);
+}
+.points p {
+  color: var(--text-dim);
+  line-height: 1.6;
 }

@@ -1,33 +1,44 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import { signOut } from "@/lib/supabase";
+import { Logo } from "./Logo";
+import s from "./ui.module.css";
+
+function Nav({ handle }: { handle?: string | null }) {
+  const router = useRouter();
+  const path = usePathname();
+  const viewing = useSearchParams().get("u");
+  const links = [
+    { href: "/me", label: "내 캐릭터", on: path === "/me" },
+    ...(handle ? [{ href: `/p?u=${handle}`, label: "공개 프로필", on: path === "/p" && viewing === handle }] : []),
+    { href: "/settings", label: "설정", on: path === "/settings" },
+  ];
+  return (
+    <nav className={s.nav}>
+      {links.map((l) => (
+        <Link key={l.href} href={l.href} className={s.navLink} aria-current={l.on ? "page" : undefined}>
+          {l.label}
+        </Link>
+      ))}
+      <button className={s.navLink} onClick={() => signOut().then(() => router.replace("/"))}>
+        로그아웃
+      </button>
+    </nav>
+  );
+}
 
 export function TopBar({ handle }: { handle?: string | null }) {
-  const router = useRouter();
   return (
-    <header
-      style={{
-        height: 64,
-        display: "flex",
-        alignItems: "center",
-        gap: 24,
-        padding: "0 24px",
-        borderBottom: "1px solid var(--line)",
-      }}
-    >
-      <Link href="/me" className="num" style={{ letterSpacing: "0.08em" }}>
-        PLAYER ONE
+    <header className={s.topBar}>
+      <Link href="/me" aria-label="Player One — 내 캐릭터">
+        <Logo />
       </Link>
-      <nav className="label" style={{ display: "flex", gap: 16, marginLeft: "auto" }}>
-        <Link href="/me">Sheet</Link>
-        {handle && <Link href={`/p?u=${handle}`}>Public view</Link>}
-        <Link href="/settings">Settings</Link>
-        <button className="label" onClick={() => signOut().then(() => router.replace("/"))}>
-          Log out
-        </button>
-      </nav>
+      <Suspense>
+        <Nav handle={handle} />
+      </Suspense>
     </header>
   );
 }

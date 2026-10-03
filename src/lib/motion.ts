@@ -1,11 +1,13 @@
 import { animate } from "animejs";
 
-// Motion tokens (docs/DESIGN.md §5).
+// Motion tokens (docs/BRAND.md, Motion): things settle with a soft overshoot,
+// like a toy set down on a table.
 export const MOTION = {
   instant: { duration: 120, ease: "outQuad" },
-  quick: { duration: 240, ease: "outExpo" },
-  base: { duration: 480, ease: "outExpo" },
-  epic: { duration: 1500, ease: "outElastic(1, .6)" },
+  quick: { duration: 240, ease: "outQuart" },
+  base: { duration: 480, ease: "outQuart" },
+  pop: { duration: 520, ease: "outBack(1.6)" },
+  epic: { duration: 1400, ease: "outElastic(1, .55)" },
 } as const;
 
 export function prefersReducedMotion() {
@@ -25,26 +27,4 @@ export function rollNumber(el: HTMLElement, from: number, to: number, digits = 1
       el.textContent = obj.v.toFixed(digits);
     },
   });
-}
-
-const GLITCH = "█▓▒░#@$%&*<>/\\";
-
-// Seal effect for VisibilityToggle: scramble the text, then the caller blurs it.
-export function scramble(el: HTMLElement, durationMs = 360) {
-  const original = el.textContent ?? "";
-  if (prefersReducedMotion()) return;
-  const start = performance.now();
-  const tick = (now: number) => {
-    const t = (now - start) / durationMs;
-    if (t >= 1) {
-      el.textContent = original;
-      return;
-    }
-    el.textContent = original
-      .split("")
-      .map((c) => (c === " " || Math.random() > t ? GLITCH[(Math.random() * GLITCH.length) | 0] : c))
-      .join("");
-    requestAnimationFrame(tick);
-  };
-  requestAnimationFrame(tick);
 }

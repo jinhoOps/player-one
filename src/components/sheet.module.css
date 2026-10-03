@@ -1,70 +1,206 @@
+/* Desktop is a 16:9 app screen: nothing scrolls but the side panel. */
 .sheet {
   display: grid;
-  grid-template-columns: 80px minmax(280px, 1fr) 80px minmax(300px, 380px);
-  grid-template-areas: "left stage right side";
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 440px);
+  grid-template-areas: "stage side";
   gap: calc(var(--space) * 4);
-  min-height: calc(100vh - 64px);
+  height: calc(100vh - 64px);
+  max-width: 1600px;
+  margin: 0 auto;
   padding: calc(var(--space) * 6);
 }
 
-.stage {
+.stageWrap {
   grid-area: stage;
   position: relative;
-  min-height: 520px;
+  min-height: 0;
 }
 
-/* Slots sit beside the body part they belong to: helm by the head, boots by the feet. */
-.slotsLeft,
-.slotsRight {
+/* The stage is a little diorama: a warm card the toy stands in. */
+.stage {
+  height: 100%;
+  border-radius: var(--radius-lg);
+  border: 1.5px solid var(--line);
+  background:
+    radial-gradient(120% 70% at 50% 30%, #fffdf8 0%, var(--surface-soft) 45%, var(--bg-deep) 100%);
+  box-shadow: var(--lift);
+  overflow: hidden;
+}
+
+/* Equipment rail: four icon slots, head to toe, along the stage's left edge. */
+.rail {
+  position: absolute;
+  left: calc(var(--space) * 4);
+  top: 50%;
+  transform: translateY(-50%);
   display: flex;
   flex-direction: column;
-  justify-content: space-around;
-  align-items: center;
-  padding-block: 10%;
+  gap: calc(var(--space) * 2.5);
+  z-index: 2;
 }
-.slotsLeft { grid-area: left; }
-.slotsRight { grid-area: right; }
+.slotWrap {
+  position: relative;
+}
+
+.tileIcon {
+  display: inline-flex;
+  color: var(--text-dim);
+}
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
 
 .side {
   grid-area: side;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 2px 4px 8px;
   display: flex;
   flex-direction: column;
-  gap: calc(var(--space) * 4);
+  gap: calc(var(--space) * 2.5);
 }
 
+/* Identity: name and level on one line, title under, actions to the right. */
+.identity {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--space) * 3);
+}
+.identityText {
+  flex: 1;
+  min-width: 0;
+}
+.identityName {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: calc(var(--space) * 2);
+}
 .identity h1 {
-  font-size: 28px;
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 26px;
+  line-height: 1.15;
 }
 .identity .title {
   color: var(--text-dim);
   font-size: 13px;
-  margin-top: var(--space);
+  margin-top: 2px;
+}
+.identityActions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: calc(var(--space) * 1.5);
+}
+.identityActions :global(.btn) {
+  justify-content: center;
+  padding: calc(var(--space) * 1.5) calc(var(--space) * 3.5);
+  font-size: 13px;
 }
 .level {
-  font-size: 13px;
-  color: var(--accent);
+  display: inline-block;
+  padding: 1px calc(var(--space) * 2.5);
+  border-radius: var(--radius-pill);
+  background: var(--leaf-soft);
+  color: var(--leaf);
+  font-family: var(--font-display);
+  font-size: 15px;
 }
 
-.kv {
-  display: flex;
-  justify-content: space-between;
+/* Tiles two to a row: stats, equipment, class and wealth all share one rhythm. */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: calc(var(--space) * 2);
+}
+.tile {
+  display: grid;
+  grid-template-columns: 1fr auto;
   align-items: center;
-  padding-block: calc(var(--space) * 2);
-  border-bottom: 1px solid var(--line);
+  gap: 2px calc(var(--space) * 2);
+  min-height: 48px;
+  padding: calc(var(--space) * 1.5) calc(var(--space) * 3);
+  border-radius: 14px;
+  background: var(--surface-soft);
   font-size: 14px;
 }
+.tileWide {
+  grid-column: 1 / -1;
+}
+.tileValue {
+  grid-column: 1 / -1;
+  min-width: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
 
-/* Mobile: character on top (55vh), panels below. Bottom-sheet tabs: TODO. */
+.classValue {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--space) * 2);
+}
+
+/* Mobile tabs: desktop shows every panel, so the tab bar only appears stacked. */
+.tabs {
+  display: none;
+}
+
+/* Mobile: normal page scroll; stage on top with the rail along its bottom,
+   then tabs and panels. */
 @media (max-width: 900px) {
   .sheet {
-    grid-template-columns: 72px 1fr 72px;
-    grid-template-areas:
-      "left stage right"
-      "side side side";
+    grid-template-columns: 1fr;
+    grid-template-areas: "stage" "side";
+    height: auto;
     padding: calc(var(--space) * 4);
   }
+  .stageWrap {
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--space) * 3);
+  }
   .stage {
-    min-height: 55vh;
+    height: 52vh;
+    min-height: 340px;
+  }
+  .side {
+    overflow: visible;
+  }
+  .rail {
+    position: static;
+    transform: none;
+    flex-direction: row;
+    justify-content: center;
+  }
+  .tabs {
+    display: flex;
+    gap: var(--space);
+    padding: var(--space);
+    border-radius: var(--radius-pill);
+    background: var(--bg-deep);
+  }
+  .tabs button {
+    flex: 1;
+    min-height: 44px;
+    border-radius: var(--radius-pill);
+    font-weight: 700;
+    color: var(--text-dim);
+    transition: color 120ms, background 120ms, box-shadow 120ms;
+  }
+  .tabs button[aria-selected="true"] {
+    color: var(--text);
+    background: var(--surface);
+    box-shadow: 0 2px 0 var(--line-strong);
+  }
+  .side[data-tab="stats"] [data-panel]:not([data-panel="stats"]),
+  .side[data-tab="equip"] [data-panel]:not([data-panel="equip"]),
+  .side[data-tab="class"] [data-panel]:not([data-panel="class"]) {
+    display: none;
   }
 }

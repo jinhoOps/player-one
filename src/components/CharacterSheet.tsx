@@ -1,11 +1,18 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import type { ReactNode } from "react";
-import { CLASSES, type ClassKey, type EquipSlotKey } from "@/lib/game";
+import { useEffect, useState, type ReactNode } from "react";
+import { bootOnce } from "@/lib/events";
+import { CLASSES, EQUIP_SLOTS, SLOT_LABELS, type ClassKey, type EquipSlotKey } from "@/lib/game";
 import type { BodyMorph } from "@/lib/morph";
+import type { Profile, ProfilePatch } from "@/lib/profile";
+import { ClassEmblem } from "./ClassEmblem";
+import { EffectLayer } from "./EffectLayer";
+import { EquipPopover } from "./EquipPopover";
 import { EquipSlot } from "./EquipSlot";
-import { HudPanel } from "./HudPanel";
+import { Card } from "./Card";
+import { SealedValue } from "./SealedValue";
+import { SlotIcon } from "./SlotIcon";
 import { StatRow } from "./StatRow";
 import { TierBadge } from "./TierBadge";
 import s from "./sheet.module.css";
@@ -32,99 +39,184 @@ export type SheetData = {
 
 type StatKey = keyof SheetData["stats"];
 
-const STAT_ROWS: { key: StatKey; label: string; unit: string; range: [number, number] }[] = [
-  { key: "height_cm", label: "Height", unit: "cm", range: [140, 200] },
-  { key: "weight_kg", label: "Weight", unit: "kg", range: [40, 120] },
-  { key: "skeletal_muscle_kg", label: "Skeletal Muscle", unit: "kg", range: [15, 50] },
-  { key: "body_fat_pct", label: "Body Fat", unit: "%", range: [5, 40] },
+// Mobile: the panels below the character become tabs (docs/DESIGN.md §4).
+const TABS = { stats: "스탯", equip: "장비", class: "클래스·자산" } as const;
+type Tab = keyof typeof TABS;
+
+// Gauge ranges are typical spans; limits mirror the database checks.
+const STAT_ROWS: { key: StatKey; label: string; unit: string; range: [number, number]; limits: [number, number] }[] = [
+  { key: "height_cm", label: "키", unit: "cm", range: [140, 200], limits: [50, 250] },
+  { key: "weight_kg", label: "몸무게", unit: "kg", range: [40, 120], limits: [20, 300] },
+  { key: "skeletal_muscle_kg", label: "골격근량", unit: "kg", range: [15, 50], limits: [5, 100] },
+  { key: "body_fat_pct", label: "체지방률", unit: "%", range: [5, 40], limits: [1, 70] },
 ];
 
 export function CharacterSheet({
   data,
+  owner,
   sealed = {},
   trailing,
+  identityActions,
   footer,
 }: {
   data: SheetData;
+  /** Owner view: edit stats in place and equipment through slot popovers. */
+  owner?: { profile: Profile; save: (patch: ProfilePatch) => Promise<void> };
   /** Owner view: dim/blur fields that are private so the owner sees what is sealed. */
   sealed?: Partial<Record<string, boolean>>;
   /** Owner view: per-field slot for a VisibilityToggle. */
   trailing?: (field: string) => ReactNode;
+  /** Buttons beside the name (owner: edit profile, preview). */
+  identityActions?: ReactNode;
   footer?: ReactNode;
 }) {
+  const [openSlot, setOpenSlot] = useState<EquipSlotKey | null>(null);
+  const [tab, setTab] = useState<Tab>("stats");
   const cls = data.classKey ? CLASSES[data.classKey] : null;
-  const slot = (k: EquipSlotKey) => <EquipSlot slot={k} equipped={data.equipment[k].equipped} />;
+
+  useEffect(() => {
+    bootOnce();
+  }, []);
+
+  const slot = (k: EquipSlotKey, side: "left" | "right") => (
+    <div key={k} className={s.slotWrap}>
+      <EquipSlot
+        slot={k}
+        equipped={data.equipment[k].equipped}
+        expanded={openSlot === k}
+        onClick={owner ? () => setOpenSlot(openSlot === k ? null : k) : undefined}
+      />
+      {owner && openSlot === k && (
+        <EquipPopover
+          slot={k}
+          side={side}
+          profile={owner.profile}
+          onSave={owner.save}
+          onClose={() => setOpenSlot(null)}
+        />
+      )}
+    </div>
+  );
+  const equipped = Object.fromEntries(EQUIP_SLOTS.map((k) => [k, data.equipment[k].equipped])) as Record<
+    EquipSlotKey,
+    boolean
+  >;
 
   return (
     <div className={s.sheet}>
-      <div className={s.slotsLeft}>
-        {slot("head")}
-        {slot("top")}
-      </div>
-      <div className={s.stage}>
-        <CharacterViewport morph={data.morph} />
-      </div>
-      <div className={s.slotsRight}>
-        {slot("bottom")}
-        {slot("shoes")}
+      <EffectLayer />
+      <div className={s.stageWrap}>
+        <div className={s.stage} data-stage>
+          <CharacterViewport morph={data.morph} equipped={equipped} />
+        </div>
+        {/* Equipment rail: head to toe, in body order, along the stage edge. Kept
+            outside the stage so its popovers aren't clipped by the rounded card. */}
+        <div className={s.rail} role="group" aria-label="장비 슬롯">
+          {EQUIP_SLOTS.map((k) => slot(k, "left"))}
+        </div>
       </div>
 
-      <div className={s.side}>
-        <HudPanel label="Character">
+      <div className={s.side} data-tab={tab}>
+        <div className={s.tabs} role="tablist" aria-label="캐릭터 정보">
+          {(Object.keys(TABS) as Tab[]).map((t) => (
+            <button
+              key={t}
+              type="button"
+              role="tab"
+              aria-selected={tab === t}
+              className="label"
+              onClick={() => setTab(t)}
+            >
+              {TABS[t]}
+            </button>
+          ))}
+        </div>
+        <Card>
           <div className={s.identity}>
-            <h1>{data.nickname || "Player One"}</h1>
-            {data.title && <p className={s.title}>{data.title}</p>}
-            {data.level != null && <p className={`num ${s.level}`}>Lv. {data.level}</p>}
-          </div>
-        </HudPanel>
-
-        <HudPanel label="Base Stats">
-          {STAT_ROWS.map((r) => (
-            <StatRow
-              key={r.key}
-              label={r.label}
-              unit={r.unit}
-              value={data.stats[r.key]}
-              range={r.range}
-              sealed={sealed[r.key]}
-              trailing={trailing?.(r.key)}
-            />
-          ))}
-        </HudPanel>
-
-        <HudPanel label="Equipment">
-          {(Object.keys(data.equipment) as EquipSlotKey[]).map((k) => (
-            <div key={k} className={s.kv}>
-              <span className="label">{k}</span>
-              <span className="num">
-                {data.equipment[k].detail ?? (data.equipment[k].equipped ? "■" : "—")} {trailing?.(k)}
-              </span>
+            <div className={s.identityText}>
+              <div className={s.identityName}>
+                <h1>{data.nickname || "Player One"}</h1>
+                {data.level != null && <span className={`num ${s.level}`}>Lv. {data.level}</span>}
+              </div>
+              {data.title && <p className={s.title}>{data.title}</p>}
             </div>
-          ))}
-        </HudPanel>
+            {identityActions && <div className={s.identityActions}>{identityActions}</div>}
+          </div>
+        </Card>
 
-        <HudPanel label="Class · Wealth">
-          <div className={s.kv}>
-            <span className="label">Class</span>
-            <span>
-              {cls ? cls.name : "—"} {trailing?.("class")}
-            </span>
-          </div>
-          {data.jobTitle !== undefined && (
-            <div className={s.kv}>
-              <span className="label">Subclass</span>
-              <span>
-                {data.jobTitle || "—"} {trailing?.("job_title")}
-              </span>
+        <div data-panel="stats">
+          <Card title="기본 스탯">
+            <div className={s.grid}>
+              {STAT_ROWS.map((r) => (
+                <StatRow
+                  key={r.key}
+                  label={r.label}
+                  unit={r.unit}
+                  value={data.stats[r.key]}
+                  range={r.range}
+                  limits={r.limits}
+                  sealed={sealed[r.key]}
+                  trailing={trailing?.(r.key)}
+                  onCommit={owner ? (v) => owner.save({ [r.key]: v }) : undefined}
+                />
+              ))}
             </div>
-          )}
-          <div className={s.kv}>
-            <span className="label">Tier</span>
-            <span>
-              {data.wealthTier != null ? <TierBadge tier={data.wealthTier} /> : "—"} {trailing?.("wealth")}
-            </span>
-          </div>
-        </HudPanel>
+          </Card>
+        </div>
+
+        <div data-panel="equip">
+          <Card title="장비">
+            <div className={s.grid}>
+              {EQUIP_SLOTS.map((k) => (
+                <div key={k} className={s.tile}>
+                  <span className={s.tileIcon} title={SLOT_LABELS[k]}>
+                    <SlotIcon slot={k} size={18} />
+                    <span className={s.srOnly}>{SLOT_LABELS[k]}</span>
+                  </span>
+                  {trailing?.(k)}
+                  <span className={`num ${s.tileValue}`}>
+                    <SealedValue sealed={sealed[k]}>
+                      {data.equipment[k].detail ?? (data.equipment[k].equipped ? "장착" : "—")}
+                    </SealedValue>
+                  </span>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+
+        <div data-panel="class">
+          <Card title="클래스 · 자산">
+            <div className={s.grid}>
+              <div className={s.tile}>
+                <span className="label">클래스</span>
+                {trailing?.("class")}
+                <span className={`${s.tileValue} ${s.classValue}`}>
+                  {data.classKey && <ClassEmblem classKey={data.classKey} size={22} />}
+                  <SealedValue sealed={sealed.class}>{cls ? cls.name : "—"}</SealedValue>
+                </span>
+              </div>
+              {data.jobTitle !== undefined && (
+                <div className={s.tile}>
+                  <span className="label">직업</span>
+                  {trailing?.("job_title")}
+                  <span className={s.tileValue}>
+                    <SealedValue sealed={sealed.job_title}>{data.jobTitle || "—"}</SealedValue>
+                  </span>
+                </div>
+              )}
+              <div className={`${s.tile} ${s.tileWide}`}>
+                <span className="label">자산 티어</span>
+                {trailing?.("wealth")}
+                <span className={s.tileValue}>
+                  <SealedValue sealed={sealed.wealth}>
+                    {data.wealthTier != null ? <TierBadge tier={data.wealthTier} /> : "—"}
+                  </SealedValue>
+                </span>
+              </div>
+            </div>
+          </Card>
+        </div>
 
         {footer}
       </div>

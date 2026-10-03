@@ -1,6 +1,6 @@
 import { supabase } from "./supabase";
 import type { SheetData } from "@/components/CharacterSheet";
-import { ageFrom, type ClassKey, type Visibility } from "./game";
+import { ageFrom, type BodyType, type ClassKey, type HairStyle, type Visibility } from "./game";
 import { morphFromStats } from "./morph";
 
 // Mirrors public.profiles (supabase/migrations).
@@ -12,6 +12,8 @@ export type Profile = {
   birth_date: string | null;
   class_key: ClassKey | null;
   job_title: string | null;
+  body_type: BodyType | null;
+  hair_style: HairStyle | null;
   height_cm: number | null;
   weight_kg: number | null;
   skeletal_muscle_kg: number | null;
@@ -36,6 +38,8 @@ export type PublicProfile = {
   level?: number;
   class_key?: ClassKey;
   job_title?: string;
+  body_type?: BodyType;
+  hair_style?: HairStyle;
   height_cm?: number;
   weight_kg?: number;
   skeletal_muscle_kg?: number;
@@ -110,7 +114,7 @@ export function sheetFromPublic(p: PublicProfile): SheetData {
       shoes: { equipped: e.shoes.equipped, detail: join(e.shoes.shoe_mm && `${e.shoes.shoe_mm}mm`) },
     },
     wealthTier: p.wealth_tier,
-    // Private body stats are absent from the RPC response → standard mannequin.
+    // Private body fields are absent from the RPC response → neutral defaults.
     morph: morphFromStats(p),
   };
 }

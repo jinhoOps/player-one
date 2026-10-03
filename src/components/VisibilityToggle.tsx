@@ -1,6 +1,6 @@
 "use client";
 
-import s from "./hud.module.css";
+import s from "./ui.module.css";
 
 // The most important component in the app: every field gets one. See docs/DESIGN.md §6.
 export function VisibilityToggle({
