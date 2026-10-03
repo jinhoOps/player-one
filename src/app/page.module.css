@@ -1,0 +1,32 @@
+.landing {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: calc(var(--space) * 6);
+}
+
+.logo {
+  font-family: var(--font-mono);
+  font-size: clamp(32px, 7vw, 72px);
+  letter-spacing: 0.08em;
+}
+
+.tagline {
+  margin-top: calc(var(--space) * 3);
+  color: var(--text-dim);
+}
+
+.start {
+  margin-top: calc(var(--space) * 10);
+}
+
+.blink {
+  animation: blink 1.2s steps(2, start) infinite;
+}
+
+@keyframes blink {
+  to {
+    visibility: hidden;
+  }
+}

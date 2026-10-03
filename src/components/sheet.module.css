@@ -1,0 +1,70 @@
+.sheet {
+  display: grid;
+  grid-template-columns: 80px minmax(280px, 1fr) 80px minmax(300px, 380px);
+  grid-template-areas: "left stage right side";
+  gap: calc(var(--space) * 4);
+  min-height: calc(100vh - 64px);
+  padding: calc(var(--space) * 6);
+}
+
+.stage {
+  grid-area: stage;
+  position: relative;
+  min-height: 520px;
+}
+
+/* Slots sit beside the body part they belong to: helm by the head, boots by the feet. */
+.slotsLeft,
+.slotsRight {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  align-items: center;
+  padding-block: 10%;
+}
+.slotsLeft { grid-area: left; }
+.slotsRight { grid-area: right; }
+
+.side {
+  grid-area: side;
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--space) * 4);
+}
+
+.identity h1 {
+  font-size: 28px;
+  font-weight: 600;
+}
+.identity .title {
+  color: var(--text-dim);
+  font-size: 13px;
+  margin-top: var(--space);
+}
+.level {
+  font-size: 13px;
+  color: var(--accent);
+}
+
+.kv {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-block: calc(var(--space) * 2);
+  border-bottom: 1px solid var(--line);
+  font-size: 14px;
+}
+
+/* Mobile: character on top (55vh), panels below. Bottom-sheet tabs: TODO. */
+@media (max-width: 900px) {
+  .sheet {
+    grid-template-columns: 72px 1fr 72px;
+    grid-template-areas:
+      "left stage right"
+      "side side side";
+    padding: calc(var(--space) * 4);
+  }
+  .stage {
+    min-height: 55vh;
+  }
+}

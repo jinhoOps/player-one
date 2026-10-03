@@ -1,0 +1,110 @@
+/* Quiet HUD tokens — docs/DESIGN.md §5 */
+:root {
+  --bg: #0a0b0e;
+  --surface: #12141a;
+  --line: rgba(255, 255, 255, 0.08);
+  --line-strong: rgba(255, 255, 255, 0.18);
+  --text: #e8eaf0;
+  --text-dim: #7a7f8c;
+  --accent: #5cf2ff;
+
+  /* Rarity colors: TierBadge, ClassEmblem, EquipSlot borders only. */
+  --rarity-common: #9aa0a6;
+  --rarity-uncommon: #4ade80;
+  --rarity-rare: #60a5fa;
+  --rarity-epic: #c084fc;
+  --rarity-legendary: #fb923c;
+
+  --radius-sm: 2px;
+  --radius-md: 6px;
+  --space: 4px;
+
+  --font-sans: "Pretendard Variable", Pretendard, system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-geist-mono), "JetBrains Mono", ui-monospace, monospace;
+
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+input,
+select {
+  font: inherit;
+  color: var(--text);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: calc(var(--space) * 1.5) calc(var(--space) * 2);
+}
+
+input:focus-visible,
+select:focus-visible,
+button:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.label {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--space) * 2);
+  padding: calc(var(--space) * 3) calc(var(--space) * 5);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  transition: border-color 120ms, color 120ms;
+}
+
+.btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}

@@ -39,9 +39,33 @@
 
 **Topics:** `nextjs` `typescript` `supabase` `threejs` `react-three-fiber` `animejs` `rpg` `character-sheet` `quantified-self`
 
+## 개발
+
+```bash
+cp .env.example .env.local   # Supabase URL + publishable key
+npm install
+npm run dev                  # http://localhost:3000
+npm run build                # 정적 export → out/
+```
+
+| 경로 | 내용 |
+|---|---|
+| `src/app/` | 페이지 (`/`, `/auth/callback`, `/me`, `/p`, `/settings`) |
+| `src/components/` | HudPanel, StatRow, EquipSlot, TierBadge, VisibilityToggle, CharacterViewport(R3F) |
+| `src/lib/` | Supabase 클라이언트, 게임 어휘(클래스·티어), 이벤트 스토어(zustand), 모션 토큰 |
+| `supabase/migrations/` | `profiles` 테이블, RLS, `get_public_profile` RPC |
+
+### Supabase
+
+- 마이그레이션은 `supabase/migrations/`에 둔다. 원격 반영: `npx supabase link --project-ref <ref>` 후 `npm run db:push`.
+- Auth → URL Configuration: Site URL `http://localhost:3000`, Redirect URL `http://localhost:3000/auth/callback`. 배포 도메인이 생기면 둘 다 추가.
+- Auth → Providers → Google: Google Cloud OAuth 클라이언트(웹)의 ID/Secret. Google 측 승인된 리디렉션 URI는 `https://<ref>.supabase.co/auth/v1/callback`.
+- Security Advisor가 `get_public_profile`을 "anon이 실행 가능한 SECURITY DEFINER"로 경고한다. 공개 프로필 조회용으로 의도된 것이다.
+- Google OAuth 동의 화면은 "테스트 중" 상태라 등록된 테스트 사용자만 로그인할 수 있다.
+
 ## 상태
 
-기획 단계. 아직 코드가 없다.
+스캐폴드 단계. 3D는 프리미티브 마네킹 placeholder, 편집은 기본 폼.
 
 ## License
 
