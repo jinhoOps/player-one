@@ -34,3 +34,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# codegraph index
+.codegraph/
+
+# supabase cli
+supabase/.temp/
+supabase/.branches/

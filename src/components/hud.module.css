@@ -1,0 +1,124 @@
+/* HudPanel: corner brackets + 1px line + top label */
+.panel {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: calc(var(--space) * 5);
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+}
+
+.panelLabel {
+  display: block;
+  margin-bottom: calc(var(--space) * 4);
+}
+
+.bracket {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-color: var(--line-strong);
+  border-style: solid;
+  border-width: 0;
+  pointer-events: none;
+}
+.tl { top: 3px; left: 3px; border-top-width: 1px; border-left-width: 1px; }
+.tr { top: 3px; right: 3px; border-top-width: 1px; border-right-width: 1px; }
+.bl { bottom: 3px; left: 3px; border-bottom-width: 1px; border-left-width: 1px; }
+.br { bottom: 3px; right: 3px; border-bottom-width: 1px; border-right-width: 1px; }
+
+/* StatRow */
+.statRow {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: baseline;
+  gap: calc(var(--space) * 2);
+  padding-block: calc(var(--space) * 2);
+  border-bottom: 1px solid var(--line);
+}
+.statValue {
+  font-size: 22px;
+  position: relative;
+}
+.statUnit {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.gauge {
+  grid-column: 1 / -1;
+  height: 2px;
+  background: var(--line);
+  overflow: hidden;
+}
+.gaugeFill {
+  height: 100%;
+  background: var(--text-dim);
+  transform-origin: left;
+  transition: transform 480ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.delta {
+  position: absolute;
+  right: 0;
+  top: -14px;
+  font-size: 11px;
+  color: var(--accent);
+  animation: deltaFloat 1200ms ease-out forwards;
+}
+@keyframes deltaFloat {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-12px); }
+}
+
+.sealed {
+  filter: blur(4px);
+  opacity: 0.6;
+  transition: filter 240ms, opacity 240ms;
+}
+
+/* VisibilityToggle */
+.lock {
+  width: 24px;
+  height: 24px;
+  display: inline-grid;
+  place-items: center;
+  color: var(--text-dim);
+  border-radius: var(--radius-sm);
+  transition: color 120ms;
+}
+.lock[aria-pressed="true"] {
+  color: var(--accent);
+}
+
+/* EquipSlot */
+.slot {
+  width: 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  transition: border-color 120ms, transform 120ms;
+}
+.slot[data-equipped="true"] {
+  border-style: solid;
+  border-color: var(--slot-rarity, var(--rarity-common));
+}
+.slot:hover {
+  transform: scale(1.04);
+}
+.slotLabel {
+  font-size: 10px;
+}
+
+/* TierBadge */
+.tier {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--space) * 2);
+  padding: var(--space) calc(var(--space) * 2);
+  border: 1px solid var(--tier-color);
+  border-radius: var(--radius-sm);
+  color: var(--tier-color);
+  font-size: 12px;
+}
