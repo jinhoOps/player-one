@@ -76,7 +76,7 @@ export const SLOT_LABELS: Record<EquipSlotKey, string> = {
 };
 
 /** Where each slot's body part sits on the character stage, as a fraction of its height. */
-export const SLOT_STAGE_Y: Record<EquipSlotKey, number> = { head: 0.36, top: 0.62, bottom: 0.77, shoes: 0.88 };
+export const SLOT_STAGE_Y: Record<EquipSlotKey, number> = { head: 0.3, top: 0.68, bottom: 0.81, shoes: 0.89 };
 
 export function ageFrom(birthDate: string | null): number | null {
   if (!birthDate) return null;

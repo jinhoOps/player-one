@@ -1,0 +1,103 @@
+.page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: calc(var(--space) * 6);
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--space) * 4);
+}
+.title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 24px;
+}
+.sub {
+  margin-top: var(--space);
+  font-size: 13px;
+  color: var(--text-dim);
+}
+.stages {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: calc(var(--space) * 4);
+}
+.figure {
+  display: grid;
+  gap: calc(var(--space) * 2);
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+/* Same warm diorama card as the character sheet stage. */
+.stage {
+  height: min(62vh, 560px);
+  border-radius: var(--radius-lg);
+  border: 1.5px solid var(--stage-line);
+  background: radial-gradient(120% 70% at 50% 30%, var(--stage-light) 0%, var(--stage-mid) 45%, var(--stage-deep) 100%);
+  box-shadow: 0 2px 0 var(--stage-edge), 0 10px 24px rgba(92, 64, 40, 0.07);
+  overflow: hidden;
+}
+.controls {
+  display: grid;
+  gap: calc(var(--space) * 2.5);
+  padding: calc(var(--space) * 4);
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-lg);
+}
+.row {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) 48px;
+  align-items: center;
+  gap: calc(var(--space) * 3);
+}
+.row input[type="range"] {
+  padding: 0;
+  border: 0;
+  background: none;
+  accent-color: var(--leaf);
+}
+.val {
+  font-size: 12px;
+  color: var(--text-dim);
+  text-align: right;
+}
+.chips {
+  grid-column: 2 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space);
+}
+.chip {
+  height: 30px;
+  padding: 0 calc(var(--space) * 3);
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--line);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+.chip[aria-pressed="true"] {
+  background: var(--leaf);
+  border-color: var(--leaf);
+  color: #fff;
+}
+.credit {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.credit a {
+  text-decoration: underline;
+}
+@media (max-width: 720px) {
+  .page {
+    padding: calc(var(--space) * 4);
+  }
+  .stages {
+    grid-template-columns: 1fr 1fr;
+    gap: calc(var(--space) * 2);
+  }
+  .stage {
+    height: 46vh;
+  }
+}
