@@ -1,0 +1,403 @@
+/* Inventory and trophy shelf — icon first, small text (docs/DESIGN.md §6 Inventory). */
+
+.page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: calc(var(--space) * 6);
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--space) * 3);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--space) * 3);
+}
+.title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 24px;
+  white-space: nowrap;
+}
+.total {
+  margin-left: var(--space);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-dim);
+}
+.search {
+  flex: 1;
+  min-width: 0;
+  max-width: 320px;
+  margin-left: auto;
+  border-radius: var(--radius-pill);
+  padding: calc(var(--space) * 2) calc(var(--space) * 4);
+  font-size: 14px;
+}
+
+/* Category rail: icon chips with a tiny label and count. */
+.cats {
+  display: flex;
+  gap: calc(var(--space) * 2);
+  overflow-x: auto;
+  padding: 2px 2px calc(var(--space) * 1.5);
+  scrollbar-width: thin;
+}
+.cat {
+  flex: none;
+  min-width: 64px;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: calc(var(--space) * 2) calc(var(--space) * 2) calc(var(--space) * 1.5);
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--line);
+  background: var(--surface);
+  color: var(--text-dim);
+  transition: background 120ms, color 120ms, border-color 120ms;
+}
+.cat:hover {
+  border-color: var(--leaf);
+  color: var(--leaf);
+}
+.cat[aria-pressed="true"] {
+  border-color: var(--leaf);
+  background: var(--leaf-soft);
+  color: var(--leaf);
+}
+.catLabel {
+  max-width: 72px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.catCount {
+  font-size: 10px;
+  opacity: 0.75;
+}
+
+.flags {
+  display: flex;
+  gap: var(--space);
+}
+.flag {
+  padding: var(--space) calc(var(--space) * 3);
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--line);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+  transition: background 120ms, color 120ms, border-color 120ms;
+}
+.flag:hover {
+  border-color: var(--leaf);
+  color: var(--leaf);
+}
+.flag[aria-pressed="true"] {
+  background: var(--leaf);
+  border-color: var(--leaf);
+  color: #fff;
+}
+
+.empty {
+  padding: calc(var(--space) * 16) 0;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+/* Item tiles: big icon, one small line of name, one tinier of brand and age. */
+.grid {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(116px, 1fr));
+  gap: calc(var(--space) * 2.5);
+}
+.tile {
+  position: relative;
+  width: 100%;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: calc(var(--space) * 3.5) calc(var(--space) * 2) calc(var(--space) * 2.5);
+  border-radius: 20px;
+  border: 1.5px solid var(--line);
+  background: var(--surface);
+  box-shadow: 0 2px 0 var(--line-strong);
+  text-align: center;
+  transition: transform 160ms cubic-bezier(0.34, 1.56, 0.64, 1), border-color 120ms;
+}
+.tile:hover {
+  transform: translateY(-2px);
+  border-color: var(--leaf);
+}
+.tile[data-gone] {
+  opacity: 0.5;
+}
+.tileIcon {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  margin-bottom: var(--space);
+  border-radius: var(--radius-md);
+  background: var(--surface-soft);
+  color: var(--text);
+}
+.tileName,
+.tileMeta {
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tileName {
+  font-size: 12px;
+  font-weight: 700;
+}
+.tileMeta {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.badges {
+  position: absolute;
+  top: calc(var(--space) * 1.5);
+  right: calc(var(--space) * 1.5);
+  display: flex;
+  gap: 2px;
+}
+.badge {
+  padding: 0 calc(var(--space) * 1.5);
+  border-radius: var(--radius-pill);
+  background: var(--leaf-soft);
+  color: var(--leaf);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+}
+.badgeTrophy {
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--sun) 22%, var(--surface));
+  color: #9a6a10;
+}
+
+/* Editor: a centered card over a dim page; a bottom sheet on phones. */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: calc(var(--space) * 4);
+  background: rgba(59, 47, 42, 0.18);
+}
+.sheet {
+  width: min(480px, 100%);
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  border-radius: var(--radius-lg);
+}
+
+/* ItemForm pieces */
+.catPick {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space);
+}
+.catChoice {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: calc(var(--space) * 1.5) 2px;
+  border-radius: 12px;
+  border: 1.5px solid var(--line);
+  background: var(--surface);
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background 120ms, border-color 120ms, color 120ms;
+}
+.catChoice:hover {
+  border-color: var(--leaf);
+}
+.catChoice[aria-checked="true"] {
+  border-color: var(--leaf);
+  background: var(--leaf-soft);
+  color: var(--leaf);
+}
+.withNote {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: calc(var(--space) * 2);
+  min-width: 0;
+}
+.withNote input {
+  flex: 1;
+  min-width: 0;
+}
+.privateNote {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.storeLink {
+  flex: none;
+  padding: var(--space) calc(var(--space) * 2.5);
+  border-radius: var(--radius-pill);
+  background: var(--leaf-soft);
+  color: var(--leaf);
+  font-size: 12px;
+  font-weight: 700;
+}
+.qtyPair {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: var(--space);
+}
+.qtySlash {
+  color: var(--text-dim);
+}
+.shelfToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space);
+  padding: var(--space) calc(var(--space) * 3);
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--line);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-dim);
+  transition: background 120ms, color 120ms, border-color 120ms;
+}
+.shelfToggle:hover:not(:disabled) {
+  border-color: var(--sun);
+}
+.shelfToggle[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--sun) 22%, var(--surface));
+  border-color: var(--sun);
+  color: #7a5208;
+}
+.shelfToggle:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.actions {
+  align-items: center;
+}
+.delete {
+  margin-right: auto;
+}
+.error {
+  grid-column: 1 / -1;
+  font-size: 12px;
+  color: var(--rarity-legendary);
+}
+
+/* Trophy shelf: six little plinths. */
+.shelf {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: calc(var(--space) * 2);
+}
+.trophy {
+  display: grid;
+  justify-items: center;
+  align-content: start;
+  gap: 1px;
+  min-width: 0;
+  padding: calc(var(--space) * 2.5) calc(var(--space) * 1.5) calc(var(--space) * 2);
+  border-radius: 14px;
+  background: var(--surface-soft);
+  text-align: center;
+}
+.trophyIcon {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 2px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--sun) 18%, var(--surface));
+  color: var(--text);
+}
+.trophyName,
+.trophyMeta {
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.trophyName {
+  font-size: 11px;
+  font-weight: 700;
+}
+.trophyMeta {
+  font-size: 10px;
+  color: var(--text-dim);
+}
+.trophyEmpty {
+  border: 1.5px dashed var(--line-strong);
+  background: none;
+  place-content: center;
+  min-height: 72px;
+}
+.trophyEmpty .trophyIcon {
+  background: none;
+  color: var(--line-strong);
+}
+.shelfLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: var(--space) calc(var(--space) * 2.5);
+  border-radius: var(--radius-pill);
+  background: var(--leaf-soft);
+  color: var(--leaf);
+  font-size: 12px;
+  font-weight: 700;
+}
+.shelfHint {
+  margin-top: calc(var(--space) * 2);
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+@media (max-width: 560px) {
+  .page {
+    padding: calc(var(--space) * 4);
+  }
+  .head {
+    flex-wrap: wrap;
+  }
+  .search {
+    order: 3;
+    flex-basis: 100%;
+    max-width: none;
+  }
+  .head :global(.btn) {
+    margin-left: auto;
+  }
+  .grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: calc(var(--space) * 2);
+  }
+  .overlay {
+    place-items: end stretch;
+    padding: calc(var(--space) * 2);
+  }
+  .sheet {
+    width: 100%;
+    max-height: 88vh;
+  }
+}

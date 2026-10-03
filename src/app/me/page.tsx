@@ -5,12 +5,15 @@ import { useState } from "react";
 import { CharacterSheet } from "@/components/CharacterSheet";
 import { ProfileEditor } from "@/components/ProfileEditor";
 import { TopBar } from "@/components/TopBar";
+import { TrophyShelf } from "@/components/TrophyShelf";
 import { VisibilityToggle } from "@/components/VisibilityToggle";
 import { SLOT_FIELDS } from "@/components/EquipFields";
 import { useGameEvents } from "@/lib/events";
 import { FIELD_VISIBILITY } from "@/lib/fields";
 import { EQUIP_SLOTS, WEALTH_TIERS } from "@/lib/game";
 import { sheetFromOwn, type Profile, type ProfilePatch } from "@/lib/profile";
+import { toTrophy } from "@/lib/items";
+import { useMyItems } from "@/lib/useMyItems";
 import { useMyProfile } from "@/lib/useMyProfile";
 
 const STAT_KEYS = ["height_cm", "weight_kg", "skeletal_muscle_kg", "body_fat_pct"] as const;
@@ -19,6 +22,7 @@ export default function MePage() {
   const { profile, error, save } = useMyProfile();
   const emit = useGameEvents((s) => s.emit);
   const [editing, setEditing] = useState(false);
+  const { items } = useMyItems();
 
   if (!profile) {
     return (
@@ -90,7 +94,12 @@ export default function MePage() {
             )}
           </>
         }
-        footer={editing && <ProfileEditor key={profile.user_id} profile={profile} onSave={saveWithEvents} />}
+        footer={
+          <>
+            {editing && <ProfileEditor key={profile.user_id} profile={profile} onSave={saveWithEvents} />}
+            {items && <TrophyShelf owner trophies={items.filter((i) => i.displayed).reverse().map(toTrophy)} />}
+          </>
+        }
       />
     </>
   );

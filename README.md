@@ -51,10 +51,10 @@ npm run build                # 정적 export → out/
 
 | 경로 | 내용 |
 |---|---|
-| `src/app/` | 페이지 (`/`, `/auth/callback`, `/me`, `/p`, `/settings`) |
+| `src/app/` | 페이지 (`/`, `/auth/callback`, `/me`, `/me/items`, `/p`, `/settings`) |
 | `src/components/` | HudPanel, StatRow, EquipSlot, TierBadge, VisibilityToggle, CharacterViewport(R3F) |
 | `src/lib/` | Supabase 클라이언트, 게임 어휘(클래스·티어), 이벤트 스토어(zustand), 모션 토큰 |
-| `supabase/migrations/` | `profiles` 테이블, RLS, `get_public_profile` RPC |
+| `supabase/migrations/` | `profiles`·`items` 테이블, RLS, `get_public_profile`·`get_public_trophies` RPC |
 
 ### Supabase
 

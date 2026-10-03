@@ -13,6 +13,7 @@ function Nav({ handle }: { handle?: string | null }) {
   const viewing = useSearchParams().get("u");
   const links = [
     { href: "/me", label: "내 캐릭터", on: path === "/me" },
+    { href: "/me/items", label: "인벤토리", on: path === "/me/items" },
     ...(handle ? [{ href: `/p?u=${handle}`, label: "공개 프로필", on: path === "/p" && viewing === handle }] : []),
     { href: "/settings", label: "설정", on: path === "/settings" },
   ];
