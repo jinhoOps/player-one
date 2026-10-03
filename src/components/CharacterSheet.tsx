@@ -60,6 +60,7 @@ export function CharacterSheet({
   sealed = {},
   trailing,
   identityActions,
+  banner,
   footer,
 }: {
   data: SheetData;
@@ -71,6 +72,8 @@ export function CharacterSheet({
   trailing?: (field: string) => ReactNode;
   /** Buttons beside the name (owner: edit profile, preview). */
   identityActions?: ReactNode;
+  /** Owner view: a prompt right under the name card (e.g. HandleClaim). */
+  banner?: ReactNode;
   footer?: ReactNode;
 }) {
   const [openSlot, setOpenSlot] = useState<EquipSlotKey | null>(null);
@@ -192,6 +195,7 @@ export function CharacterSheet({
             {identityActions && <div className={s.identityActions}>{identityActions}</div>}
           </div>
         </Card>
+        {banner}
 
         <div data-panel="stats">
           <Card title="기본 스탯" action={editButton("stats")}>
