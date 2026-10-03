@@ -1,31 +1,29 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { CLASSES, WEALTH_TIERS } from "@/lib/game";
+import { BODY_TYPES, CLASSES, HAIR_STYLES, WEALTH_TIERS } from "@/lib/game";
 import type { Profile, ProfilePatch } from "@/lib/profile";
-import { HudPanel } from "./HudPanel";
+import { Card } from "./Card";
+import s from "./ui.module.css";
 
-type FieldDef = { key: keyof ProfilePatch; label: string; type: "text" | "number" | "date"; step?: number };
+type FieldDef = {
+  key: keyof ProfilePatch;
+  label: string;
+  type: "text" | "number" | "date";
+  step?: number;
+  hint?: string;
+};
 
 const FIELDS: FieldDef[] = [
-  { key: "handle", label: "Handle (a-z, 0-9, _)", type: "text" },
-  { key: "nickname", label: "Nickname", type: "text" },
-  { key: "title", label: "Title", type: "text" },
-  { key: "birth_date", label: "Birth date", type: "date" },
-  { key: "job_title", label: "Job title", type: "text" },
-  { key: "height_cm", label: "Height cm", type: "number", step: 0.1 },
-  { key: "weight_kg", label: "Weight kg", type: "number", step: 0.1 },
-  { key: "skeletal_muscle_kg", label: "Skeletal muscle kg", type: "number", step: 0.1 },
-  { key: "body_fat_pct", label: "Body fat %", type: "number", step: 0.1 },
-  { key: "head_cm", label: "Head cm", type: "number", step: 0.1 },
-  { key: "hat_size", label: "Hat size", type: "text" },
-  { key: "top_size", label: "Top size", type: "text" },
-  { key: "waist_cm", label: "Waist cm", type: "number", step: 0.1 },
-  { key: "bottom_size", label: "Bottom size", type: "text" },
-  { key: "shoe_mm", label: "Shoe mm", type: "number", step: 5 },
+  { key: "handle", label: "핸들", type: "text", hint: "영소문자·숫자·_ 3–20자" },
+  { key: "nickname", label: "닉네임", type: "text" },
+  { key: "title", label: "칭호", type: "text" },
+  { key: "birth_date", label: "생년월일", type: "date" },
+  { key: "job_title", label: "직업명", type: "text" },
 ];
 
-// Plain form for now; inline editing + StatInput scrub come later (docs/DESIGN.md §6).
+// Identity, class and look. Stats are edited in place (StatInput) and sizes
+// through the equipment slot popovers (docs/DESIGN.md §6).
 export function ProfileEditor({ profile, onSave }: { profile: Profile; onSave: (p: ProfilePatch) => Promise<void> }) {
   const [busy, setBusy] = useState(false);
 
@@ -35,10 +33,15 @@ export function ProfileEditor({ profile, onSave }: { profile: Profile; onSave: (
     const patch: Record<string, unknown> = {};
     for (const f of FIELDS) {
       const raw = String(fd.get(f.key) ?? "").trim();
-      patch[f.key] = raw === "" ? null : f.type === "number" ? Number(raw) : f.key === "handle" ? raw.toLowerCase() : raw;
+      patch[f.key] =
+        raw === "" ? null : f.type === "number" ? Number(raw) : f.key === "handle" ? raw.toLowerCase() : raw;
     }
     const cls = String(fd.get("class_key") ?? "");
     patch.class_key = cls || null;
+    const body = String(fd.get("body_type") ?? "");
+    patch.body_type = body || null;
+    const hair = String(fd.get("hair_style") ?? "");
+    patch.hair_style = hair || null;
     const tier = String(fd.get("wealth_tier") ?? "");
     patch.wealth_tier = tier === "" ? null : Number(tier);
     setBusy(true);
@@ -49,47 +52,60 @@ export function ProfileEditor({ profile, onSave }: { profile: Profile; onSave: (
     }
   }
 
+  const select = (
+    name: string,
+    label: string,
+    value: string | number | null,
+    options: [string | number, string][],
+    empty = "—",
+  ) => (
+    <label className={s.formRow}>
+      <span className="label">{label}</span>
+      <select name={name} defaultValue={value ?? ""}>
+        <option value="">{empty}</option>
+        {options.map(([k, text]) => (
+          <option key={k} value={k}>
+            {text}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+
   return (
-    <HudPanel label="Edit">
-      <form onSubmit={submit} style={{ display: "grid", gap: 8 }}>
+    <Card title="프로필 편집">
+      <form onSubmit={submit} className={s.form}>
         {FIELDS.map((f) => (
-          <label key={f.key} style={{ display: "grid", gap: 4 }}>
+          <label key={f.key} className={s.formRow}>
             <span className="label">{f.label}</span>
             <input
               name={f.key}
               type={f.type}
               step={f.step}
+              placeholder={f.hint}
               defaultValue={(profile[f.key as keyof Profile] as string | number | null) ?? ""}
               className={f.type === "number" ? "num" : undefined}
             />
           </label>
         ))}
-        <label style={{ display: "grid", gap: 4 }}>
-          <span className="label">Class</span>
-          <select name="class_key" defaultValue={profile.class_key ?? ""}>
-            <option value="">—</option>
-            {Object.entries(CLASSES).map(([k, c]) => (
-              <option key={k} value={k}>
-                {c.name} — {c.jobs}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label style={{ display: "grid", gap: 4 }}>
-          <span className="label">Wealth tier (구간만 저장)</span>
-          <select name="wealth_tier" defaultValue={profile.wealth_tier ?? ""}>
-            <option value="">—</option>
-            {WEALTH_TIERS.map((t, i) => (
-              <option key={i} value={i}>
-                {t.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button className="btn" type="submit" disabled={busy} style={{ justifyContent: "center", marginTop: 8 }}>
-          {busy ? "Saving…" : "Save"}
+        {select("body_type", "체형", profile.body_type, Object.entries(BODY_TYPES))}
+        {select("hair_style", "헤어", profile.hair_style, Object.entries(HAIR_STYLES), "기본 (체형에 맞춤)")}
+        {select(
+          "class_key",
+          "클래스",
+          profile.class_key,
+          Object.entries(CLASSES).map(([k, c]) => [k, `${c.name} — ${c.jobs}`]),
+        )}
+        {select(
+          "wealth_tier",
+          "자산 티어",
+          profile.wealth_tier,
+          WEALTH_TIERS.map((t, i) => [i, t.label]),
+        )}
+        <button className={`btn ${s.formSubmit}`} type="submit" disabled={busy}>
+          {busy ? "저장 중…" : "저장"}
         </button>
       </form>
-    </HudPanel>
+    </Card>
   );
 }

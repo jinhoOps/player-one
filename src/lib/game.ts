@@ -36,6 +36,7 @@ export const VISIBILITY_KEYS = [
   "level",
   "class",
   "job_title",
+  "body_type",
   "height",
   "weight",
   "skeletal_muscle",
@@ -50,15 +51,32 @@ export const VISIBILITY_KEYS = [
 export type VisibilityKey = (typeof VISIBILITY_KEYS)[number];
 export type Visibility = Record<VisibilityKey, boolean>;
 
+export const BODY_TYPES = { female: "여성", male: "남성" } as const;
+export type BodyType = keyof typeof BODY_TYPES;
+
+export const HAIR_STYLES = {
+  short: "숏컷",
+  bob: "단발",
+  long: "긴 머리",
+  ponytail: "포니테일",
+  bun: "똥머리",
+} as const;
+export type HairStyle = keyof typeof HAIR_STYLES;
+
 export const EQUIP_SLOTS = ["head", "top", "bottom", "shoes"] as const;
 export type EquipSlotKey = (typeof EQUIP_SLOTS)[number];
 
+// Slot keys keep their RPG meaning (helm, armor, greaves, boots) in code; the
+// screen shows an icon (SlotIcon) and these plain names in tooltips and labels.
 export const SLOT_LABELS: Record<EquipSlotKey, string> = {
-  head: "HELM",
-  top: "ARMOR",
-  bottom: "LEGS",
-  shoes: "BOOTS",
+  head: "머리",
+  top: "상의",
+  bottom: "하의",
+  shoes: "신발",
 };
+
+/** Where each slot's body part sits on the character stage, as a fraction of its height. */
+export const SLOT_STAGE_Y: Record<EquipSlotKey, number> = { head: 0.36, top: 0.62, bottom: 0.77, shoes: 0.88 };
 
 export function ageFrom(birthDate: string | null): number | null {
   if (!birthDate) return null;

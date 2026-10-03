@@ -1,28 +1,42 @@
-/* Quiet HUD tokens — docs/DESIGN.md §5 */
+/* Cozy Quest tokens — docs/BRAND.md */
 :root {
-  --bg: #0a0b0e;
-  --surface: #12141a;
-  --line: rgba(255, 255, 255, 0.08);
-  --line-strong: rgba(255, 255, 255, 0.18);
-  --text: #e8eaf0;
-  --text-dim: #7a7f8c;
-  --accent: #5cf2ff;
+  /* Paper and ink: warm cream ground, cocoa text. */
+  --bg: #fbf6ec;
+  --bg-deep: #f3eadb;
+  --surface: #ffffff;
+  --surface-soft: #fff9f0;
+  --line: #ecdfcc;
+  --line-strong: #dccab0;
+  --text: #3b2f2a;
+  --text-dim: #74665b;
 
-  /* Rarity colors: TierBadge, ClassEmblem, EquipSlot borders only. */
-  --rarity-common: #9aa0a6;
-  --rarity-uncommon: #4ade80;
-  --rarity-rare: #60a5fa;
-  --rarity-epic: #c084fc;
-  --rarity-legendary: #fb923c;
+  /* One action color, one sparkle, one helper. */
+  --leaf: #2a7f50; /* primary actions, focus, gauges */
+  --leaf-soft: #e1f2e6;
+  --sun: #f5b83d; /* sparkles, celebration */
+  --sky: #4f9bd9; /* hover links, slot ↔ body line */
 
-  --radius-sm: 2px;
-  --radius-md: 6px;
+  /* Rarity: tier badges, class emblem ring, equipment slot borders only. */
+  --rarity-common: #a39a90;
+  --rarity-uncommon: #4fae6e;
+  --rarity-rare: #4f9be0;
+  --rarity-epic: #a77be0;
+  --rarity-legendary: #f0a030;
+
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-pill: 999px;
   --space: 4px;
 
-  --font-sans: "Pretendard Variable", Pretendard, system-ui, -apple-system, sans-serif;
-  --font-mono: var(--font-geist-mono), "JetBrains Mono", ui-monospace, monospace;
+  /* Soft lift plus a firm bottom edge, so things look pressable. */
+  --lift: 0 2px 0 var(--line-strong), 0 10px 24px rgba(92, 64, 40, 0.07);
+  --lift-hover: 0 3px 0 var(--line-strong), 0 14px 30px rgba(92, 64, 40, 0.1);
 
-  color-scheme: dark;
+  --font-display: var(--font-jua), "Jua", var(--font-sans);
+  --font-sans: "Pretendard Variable", Pretendard, system-ui, -apple-system, sans-serif;
+
+  color-scheme: light;
 }
 
 * {
@@ -33,7 +47,7 @@
 
 html,
 body {
-  height: 100%;
+  min-height: 100%;
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-sans);
@@ -57,47 +71,81 @@ input,
 select {
   font: inherit;
   color: var(--text);
-  background: transparent;
-  border: 1px solid var(--line);
+  background: var(--surface-soft);
+  border: 1.5px solid var(--line);
   border-radius: var(--radius-sm);
-  padding: calc(var(--space) * 1.5) calc(var(--space) * 2);
+  padding: calc(var(--space) * 1.5) calc(var(--space) * 3);
+  transition: border-color 120ms, background 120ms;
+}
+input:hover,
+select:hover {
+  border-color: var(--line-strong);
 }
 
 input:focus-visible,
 select:focus-visible,
-button:focus-visible {
-  outline: 1px solid var(--accent);
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--leaf);
   outline-offset: 2px;
 }
 
+/* Small bold caption; no shouting caps. */
 .label {
-  font-size: 11px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-size: 12px;
+  font-weight: 600;
   color: var(--text-dim);
 }
 
 .num {
-  font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
 }
 
+.display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: 0.01em;
+}
+
+/* Primary button: a leaf-green pill with a firm bottom edge that presses down. */
 .btn {
   display: inline-flex;
   align-items: center;
   gap: calc(var(--space) * 2);
-  padding: calc(var(--space) * 3) calc(var(--space) * 5);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-sm);
-  font-size: 13px;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  transition: border-color 120ms, color 120ms;
+  padding: calc(var(--space) * 2.5) calc(var(--space) * 5);
+  border-radius: var(--radius-pill);
+  background: var(--leaf);
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+  box-shadow: 0 3px 0 #1d5c39;
+  transition: transform 120ms, box-shadow 120ms, background 120ms;
+}
+.btn:hover {
+  background: #2f8c59;
+}
+.btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #1d5c39;
+}
+.btn:disabled {
+  opacity: 0.55;
+  cursor: default;
 }
 
-.btn:hover {
-  border-color: var(--accent);
-  color: var(--accent);
+/* Quiet button: cream pill for secondary actions. */
+.btn-soft {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 2px 0 var(--line-strong);
+  border: 1.5px solid var(--line);
+}
+.btn-soft:hover {
+  background: var(--surface-soft);
+}
+.btn-soft:active {
+  box-shadow: 0 0 0 var(--line-strong);
 }
 
 @media (prefers-reduced-motion: reduce) {

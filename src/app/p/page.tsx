@@ -25,10 +25,10 @@ function PublicProfileView() {
     </main>
   );
 
-  if (!handle) return msg("No player specified");
-  if (state?.handle !== handle) return msg("Loading character…");
+  if (!handle) return msg("플레이어를 지정하지 않았어요");
+  if (state?.handle !== handle) return msg("캐릭터 불러오는 중…");
   if (state.error) return msg(state.error);
-  if (!state.profile) return msg(`Player "${handle}" not found`);
+  if (!state.profile) return msg(`"${handle}" 플레이어를 찾을 수 없어요`);
   return <CharacterSheet data={sheetFromPublic(state.profile)} />;
 }
 
