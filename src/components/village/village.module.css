@@ -1,0 +1,183 @@
+/* Village: the sky gradient follows the Korea clock (src/lib/daylight.ts). */
+.sky {
+  position: relative;
+  height: 100%;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: background 600ms;
+}
+
+/* Over each head: an optional speech bubble, then emblem + name.
+   BookVillage moves each tag to its head every frame. */
+.labels {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.tag {
+  position: absolute;
+  left: 0;
+  top: 0;
+  visibility: hidden;
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+.name {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 7px 1px 2px;
+  min-height: 20px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.9);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text);
+  box-shadow: 0 1px 0 var(--line-strong);
+}
+button.name:hover {
+  background: var(--leaf-soft);
+  color: var(--leaf);
+}
+.nameSelf {
+  pointer-events: none;
+  background: var(--leaf);
+  color: #fff;
+  padding-left: 7px;
+}
+.nameSelf:has(svg) {
+  padding-left: 2px;
+}
+.bubble {
+  position: relative;
+  max-width: 180px;
+  padding: 5px 10px;
+  border-radius: 12px;
+  background: #fff;
+  font-size: 12px;
+  line-height: 1.35;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: center;
+  color: var(--text);
+  box-shadow: 0 2px 0 var(--line-strong);
+  animation: bubbleIn 240ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.bubble::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -5px;
+  width: 10px;
+  height: 10px;
+  background: #fff;
+  transform: translateX(-50%) rotate(45deg);
+}
+@keyframes bubbleIn {
+  from { opacity: 0; transform: translateY(4px) scale(0.9); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Page: the map fills the screen under the top bar; chat and status float on it. */
+.page {
+  position: relative;
+  height: calc(100vh - 64px);
+  padding: calc(var(--space) * 4);
+}
+.hud {
+  position: absolute;
+  left: calc(var(--space) * 8);
+  top: calc(var(--space) * 8);
+  display: flex;
+  gap: var(--space);
+  pointer-events: none;
+}
+.pill {
+  padding: var(--space) calc(var(--space) * 3);
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.8);
+  font-size: 12px;
+  font-weight: 700;
+}
+.chat {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--space) * 8);
+  transform: translateX(-50%);
+  width: min(440px, calc(100% - 48px));
+  display: flex;
+  gap: var(--space);
+  padding: var(--space);
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: var(--lift);
+}
+.chat input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: none;
+  padding: calc(var(--space) * 2) calc(var(--space) * 3);
+  font-size: 14px;
+}
+.chat input:focus-visible {
+  outline: none;
+}
+.chat :global(.btn) {
+  padding: calc(var(--space) * 2) calc(var(--space) * 4);
+}
+.hint {
+  position: absolute;
+  right: calc(var(--space) * 8);
+  top: calc(var(--space) * 8);
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+}
+.credit {
+  position: absolute;
+  right: calc(var(--space) * 7);
+  bottom: calc(var(--space) * 5);
+  max-width: 50%;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.85);
+  text-align: right;
+}
+.credit a {
+  text-decoration: underline;
+}
+.notice {
+  height: 100%;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: calc(var(--space) * 3);
+  text-align: center;
+}
+@media (max-width: 560px) {
+  .page {
+    padding: calc(var(--space) * 2);
+  }
+  .hud {
+    left: calc(var(--space) * 5);
+    top: calc(var(--space) * 5);
+  }
+  .hint {
+    display: none;
+  }
+  .chat {
+    bottom: calc(var(--space) * 15);
+  }
+  .credit {
+    left: calc(var(--space) * 5);
+    right: calc(var(--space) * 5);
+    bottom: calc(var(--space) * 3);
+    max-width: none;
+    text-align: center;
+  }
+}
