@@ -215,7 +215,7 @@ function toyMaterials(bands: Vector3, eyeY: number) {
       uniforms: { uColor: { value: new Color(PALETTE.ink) }, uLid: { value: 1 }, uEyeY: { value: eyeY } },
     }),
     hair: part(PALETTE.hair, DoubleSide),
-    hat: part(PALETTE.hat),
+    hat: part(PALETTE.hat, DoubleSide),
   };
 }
 

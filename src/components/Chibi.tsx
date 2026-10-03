@@ -17,6 +17,7 @@ import { isBooting, useEffectSkip, useGameEvent, useGameEvents } from "@/lib/eve
 import { EQUIP_SLOTS, type EquipSlotKey, type HairStyle } from "@/lib/game";
 import type { BodyMorph } from "@/lib/morph";
 import { prefersReducedMotion, useOneShot } from "@/lib/motion";
+import { HEADWEAR } from "./Headwear";
 
 // Effect durations (ms), within the 1.8s cap of docs/BRAND.md.
 const POP_MS = 700;
@@ -30,7 +31,7 @@ type Head = Rig["head"];
 
 // ---- Head parts, built in the body's bind space and carried by the head bone ----
 
-function Hair({ style, head, material }: { style: HairStyle; head: Head; material: ShaderMaterial }) {
+function Hair({ style, head, material, hidden = [] }: { style: HairStyle; head: Head; material: ShaderMaterial; hidden?: readonly string[] }) {
   const { center: c, radii: r } = head;
   const s = 1.07;
   // A shell around the skull, open over the face, falling to `drop` (0 = crown, 1 = chin).
@@ -55,36 +56,27 @@ function Hair({ style, head, material }: { style: HairStyle; head: Head; materia
           </mesh>
         </>
       )}
-      {style === "ponytail" && (
-        <>
-          <mesh material={material} position={[c.x, c.y + r.y * 0.15, c.z - r.z * 1.08]} scale={[r.x * 0.2, r.y * 0.2, r.z * 0.2]}>
+      {style === "ponytail" &&
+        (hidden.includes("knot") ? (
+          // Under a cap the tail comes out below the rim at the back.
+          <mesh material={material} position={[c.x, c.y - r.y * 0.42, c.z - r.z * 1.12]} rotation-x={0.25} scale={[r.x * 0.2, r.y * 0.45, r.z * 0.2]}>
             <sphereGeometry args={[1, 20, 14]} />
           </mesh>
-          <mesh material={material} position={[c.x, c.y - r.y * 0.3, c.z - r.z * 1.18]} rotation-x={0.2} scale={[r.x * 0.2, r.y * 0.52, r.z * 0.2]}>
-            <sphereGeometry args={[1, 20, 14]} />
-          </mesh>
-        </>
-      )}
-      {style === "bun" && (
+        ) : (
+          <>
+            <mesh material={material} position={[c.x, c.y + r.y * 0.15, c.z - r.z * 1.08]} scale={[r.x * 0.2, r.y * 0.2, r.z * 0.2]}>
+              <sphereGeometry args={[1, 20, 14]} />
+            </mesh>
+            <mesh material={material} position={[c.x, c.y - r.y * 0.3, c.z - r.z * 1.18]} rotation-x={0.2} scale={[r.x * 0.2, r.y * 0.52, r.z * 0.2]}>
+              <sphereGeometry args={[1, 20, 14]} />
+            </mesh>
+          </>
+        ))}
+      {style === "bun" && !hidden.includes("bun") && (
         <mesh material={material} position={[c.x, c.y + r.y * 0.98, c.z - r.z * 0.35]} scale={[r.x * 0.36, r.y * 0.3, r.z * 0.36]}>
           <sphereGeometry args={[1, 24, 16]} />
         </mesh>
       )}
-    </group>
-  );
-}
-
-// Head slot equipped: a soft cap with a short brim over the hair.
-function Hat({ head, material }: { head: Head; material: ShaderMaterial }) {
-  const { center: c, radii: r } = head;
-  return (
-    <group position={[c.x, c.y + r.y * 0.12, c.z - r.z * 0.04]}>
-      <mesh material={material} rotation-x={-0.14} scale={[r.x * 1.2, r.y * 1.08, r.z * 1.19]}>
-        <sphereGeometry args={[1, 40, 20, 0, Math.PI * 2, 0, Math.PI * 0.5]} />
-      </mesh>
-      <mesh material={material} position={[0, r.y * 0.04, r.z * 1.24]} rotation-x={0.22} scale={[r.x * 0.62, r.y * 0.045, r.z * 0.4]}>
-        <sphereGeometry args={[1, 32, 12]} />
-      </mesh>
     </group>
   );
 }
@@ -182,14 +174,16 @@ export function Chibi({
   });
 
   const style = morph.hair ?? DEFAULT_HAIR[morph.body];
+  // The head slot holds one kind of gear for now; more kinds come as entries in HEADWEAR.
+  const gear = equipped.head ? HEADWEAR.cap : null;
   return (
     <group ref={root}>
       <primitive object={rig.model} />
       {createPortal(
         <group matrix={rig.headToBone} matrixAutoUpdate={false}>
           <Smile head={rig.head} />
-          <Hair style={style} head={rig.head} material={rig.materials.hair} />
-          {equipped.head && <Hat head={rig.head} material={rig.materials.hat} />}
+          <Hair style={style} head={rig.head} material={rig.materials.hair} hidden={gear?.hides} />
+          {gear?.render(rig.head, rig.materials.hat)}
         </group>,
         rig.bones.Head,
       )}
