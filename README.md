@@ -73,3 +73,10 @@ MVP. 로그인 → 캐릭터 시트(인라인 편집, 장비 팝오버, 필드�
 ## License
 
 [MIT](LICENSE)
+
+## 3D 모델 크레딧
+
+시험판(`/lab`, `/lab/village`)에 쓰는 모델. 원본 라이선스 파일은 `public/models/*/license.txt`.
+
+- This work is based on "Free Pack - Chibi Base Mesh (Rigged)" (https://sketchfab.com/3d-models/free-pack-chibi-base-mesh-rigged-fed4fb329f224f1594f631eae8d2626b) by DuNguyn Studio (https://sketchfab.com/dunguyn) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+- This work is based on "Medieval Fantasy Book" (https://sketchfab.com/3d-models/medieval-fantasy-book-06d5a80a04fc4c5ab552759e9a97d91a) by Pixel (https://sketchfab.com/stefan.lengyel1) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
