@@ -1,12 +1,19 @@
 /* Cozy Quest tokens — docs/BRAND.md */
 :root {
-  /* Paper and ink: warm cream ground, cocoa text. */
-  --bg: #fbf6ec;
-  --bg-deep: #f3eadb;
+  /* Minimal white ground with neutral grays; cocoa text. */
+  --bg: #ffffff;
+  --bg-deep: #f2f2f0;
   --surface: #ffffff;
-  --surface-soft: #fff9f0;
-  --line: #ecdfcc;
-  --line-strong: #dccab0;
+  --surface-soft: #f7f7f6;
+  --line: #ebebe9;
+  --line-strong: #dadad7;
+
+  /* The character stage alone keeps the warm, natural diorama tones. */
+  --stage-light: #fffdf8;
+  --stage-mid: #fff9f0;
+  --stage-deep: #f3eadb;
+  --stage-line: #ecdfcc;
+  --stage-edge: #dccab0;
   --text: #3b2f2a;
   --text-dim: #74665b;
 
@@ -30,8 +37,8 @@
   --space: 4px;
 
   /* Soft lift plus a firm bottom edge, so things look pressable. */
-  --lift: 0 2px 0 var(--line-strong), 0 10px 24px rgba(92, 64, 40, 0.07);
-  --lift-hover: 0 3px 0 var(--line-strong), 0 14px 30px rgba(92, 64, 40, 0.1);
+  --lift: 0 2px 0 var(--line-strong), 0 10px 24px rgba(0, 0, 0, 0.05);
+  --lift-hover: 0 3px 0 var(--line-strong), 0 14px 30px rgba(0, 0, 0, 0.08);
 
   --font-display: var(--font-jua), "Jua", var(--font-sans);
   --font-sans: "Pretendard Variable", Pretendard, system-ui, -apple-system, sans-serif;

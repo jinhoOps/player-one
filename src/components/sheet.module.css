@@ -20,10 +20,10 @@
 .stage {
   height: 100%;
   border-radius: var(--radius-lg);
-  border: 1.5px solid var(--line);
+  border: 1.5px solid var(--stage-line);
   background:
-    radial-gradient(120% 70% at 50% 30%, #fffdf8 0%, var(--surface-soft) 45%, var(--bg-deep) 100%);
-  box-shadow: var(--lift);
+    radial-gradient(120% 70% at 50% 30%, var(--stage-light) 0%, var(--stage-mid) 45%, var(--stage-deep) 100%);
+  box-shadow: 0 2px 0 var(--stage-edge), 0 10px 24px rgba(92, 64, 40, 0.07);
   overflow: hidden;
 }
 
