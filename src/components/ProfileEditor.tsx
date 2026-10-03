@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { BODY_TYPES, CLASSES, HAIR_STYLES, WEALTH_TIERS } from "@/lib/game";
+import { BODY_TYPES, HAIR_STYLES } from "@/lib/game";
 import type { Profile, ProfilePatch } from "@/lib/profile";
 import { Card } from "./Card";
 import s from "./ui.module.css";
@@ -19,11 +19,10 @@ const FIELDS: FieldDef[] = [
   { key: "nickname", label: "닉네임", type: "text" },
   { key: "title", label: "칭호", type: "text" },
   { key: "birth_date", label: "생년월일", type: "date" },
-  { key: "job_title", label: "직업명", type: "text" },
 ];
 
-// Identity, class and look. Stats are edited in place (StatInput) and sizes
-// through the equipment slot popovers (docs/DESIGN.md §6).
+// Identity and look. Stats, equipment and class are entered in their own
+// cards (PanelForms, docs/DESIGN.md §6).
 export function ProfileEditor({ profile, onSave }: { profile: Profile; onSave: (p: ProfilePatch) => Promise<void> }) {
   const [busy, setBusy] = useState(false);
 
@@ -36,14 +35,10 @@ export function ProfileEditor({ profile, onSave }: { profile: Profile; onSave: (
       patch[f.key] =
         raw === "" ? null : f.type === "number" ? Number(raw) : f.key === "handle" ? raw.toLowerCase() : raw;
     }
-    const cls = String(fd.get("class_key") ?? "");
-    patch.class_key = cls || null;
     const body = String(fd.get("body_type") ?? "");
     patch.body_type = body || null;
     const hair = String(fd.get("hair_style") ?? "");
     patch.hair_style = hair || null;
-    const tier = String(fd.get("wealth_tier") ?? "");
-    patch.wealth_tier = tier === "" ? null : Number(tier);
     setBusy(true);
     try {
       await onSave(patch as ProfilePatch);
@@ -90,18 +85,6 @@ export function ProfileEditor({ profile, onSave }: { profile: Profile; onSave: (
         ))}
         {select("body_type", "체형", profile.body_type, Object.entries(BODY_TYPES))}
         {select("hair_style", "헤어", profile.hair_style, Object.entries(HAIR_STYLES), "기본 (체형에 맞춤)")}
-        {select(
-          "class_key",
-          "클래스",
-          profile.class_key,
-          Object.entries(CLASSES).map(([k, c]) => [k, `${c.name} — ${c.jobs}`]),
-        )}
-        {select(
-          "wealth_tier",
-          "자산 티어",
-          profile.wealth_tier,
-          WEALTH_TIERS.map((t, i) => [i, t.label]),
-        )}
         <button className={`btn ${s.formSubmit}`} type="submit" disabled={busy}>
           {busy ? "저장 중…" : "저장"}
         </button>

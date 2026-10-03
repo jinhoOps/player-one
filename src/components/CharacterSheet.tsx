@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from "react";
 import { bootOnce } from "@/lib/events";
 import { CLASSES, EQUIP_SLOTS, SLOT_LABELS, type ClassKey, type EquipSlotKey } from "@/lib/game";
 import type { BodyMorph } from "@/lib/morph";
@@ -11,6 +11,7 @@ import { EffectLayer } from "./EffectLayer";
 import { EquipPopover } from "./EquipPopover";
 import { EquipSlot } from "./EquipSlot";
 import { Card } from "./Card";
+import { ClassForm, EquipForm, StatsForm } from "./PanelForms";
 import { SealedValue } from "./SealedValue";
 import { SlotIcon } from "./SlotIcon";
 import { StatRow } from "./StatRow";
@@ -43,13 +44,15 @@ type StatKey = keyof SheetData["stats"];
 const TABS = { stats: "스탯", equip: "장비", class: "클래스·자산" } as const;
 type Tab = keyof typeof TABS;
 
-// Gauge ranges are typical spans; limits mirror the database checks.
-const STAT_ROWS: { key: StatKey; label: string; unit: string; range: [number, number]; limits: [number, number] }[] = [
-  { key: "height_cm", label: "키", unit: "cm", range: [140, 200], limits: [50, 250] },
-  { key: "weight_kg", label: "몸무게", unit: "kg", range: [40, 120], limits: [20, 300] },
-  { key: "skeletal_muscle_kg", label: "골격근량", unit: "kg", range: [15, 50], limits: [5, 100] },
-  { key: "body_fat_pct", label: "체지방률", unit: "%", range: [5, 40], limits: [1, 70] },
+// Gauge ranges are typical spans.
+const STAT_ROWS: { key: StatKey; label: string; unit: string; range: [number, number] }[] = [
+  { key: "height_cm", label: "키", unit: "cm", range: [140, 200] },
+  { key: "weight_kg", label: "몸무게", unit: "kg", range: [40, 120] },
+  { key: "skeletal_muscle_kg", label: "골격근량", unit: "kg", range: [15, 50] },
+  { key: "body_fat_pct", label: "체지방률", unit: "%", range: [5, 40] },
 ];
+
+type Panel = "stats" | "equip" | "class";
 
 export function CharacterSheet({
   data,
@@ -72,6 +75,29 @@ export function CharacterSheet({
 }) {
   const [openSlot, setOpenSlot] = useState<EquipSlotKey | null>(null);
   const [tab, setTab] = useState<Tab>("stats");
+  // Owner view: which card is open as a form, and the field to focus in it.
+  const [edit, setEdit] = useState<{ panel: Panel; focus?: string } | null>(null);
+  const close = () => setEdit(null);
+  const editButton = (panel: Panel) =>
+    owner && edit?.panel !== panel ? (
+      <button type="button" className={s.editButton} onClick={() => setEdit({ panel })}>
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden>
+          <path d="M10.5 2.5l3 3L5 14H2v-3z" />
+        </svg>
+        입력
+      </button>
+    ) : null;
+  // Owner view: tapping a tile opens its card form on that field. The lock chip keeps its own click.
+  const tap = (panel: Panel, focus: string) =>
+    owner
+      ? {
+          role: "button",
+          tabIndex: 0,
+          onClick: (e: MouseEvent) => !(e.target as Element).closest("[aria-pressed]") && setEdit({ panel, focus }),
+          onKeyDown: (e: KeyboardEvent) =>
+            e.target === e.currentTarget && (e.key === "Enter" || e.key === " ") && (e.preventDefault(), setEdit({ panel, focus })),
+        }
+      : {};
   const cls = data.classKey ? CLASSES[data.classKey] : null;
 
   useEffect(() => {
@@ -168,7 +194,10 @@ export function CharacterSheet({
         </Card>
 
         <div data-panel="stats">
-          <Card title="기본 스탯">
+          <Card title="기본 스탯" action={editButton("stats")}>
+            {owner && edit?.panel === "stats" ? (
+              <StatsForm profile={owner.profile} onSave={owner.save} onClose={close} focus={edit.focus} />
+            ) : (
             <div className={s.grid}>
               {STAT_ROWS.map((r) => (
                 <StatRow
@@ -177,21 +206,24 @@ export function CharacterSheet({
                   unit={r.unit}
                   value={data.stats[r.key]}
                   range={r.range}
-                  limits={r.limits}
                   sealed={sealed[r.key]}
                   trailing={trailing?.(r.key)}
-                  onCommit={owner ? (v) => owner.save({ [r.key]: v }) : undefined}
+                  onEdit={owner ? () => setEdit({ panel: "stats", focus: r.key }) : undefined}
                 />
               ))}
             </div>
+            )}
           </Card>
         </div>
 
         <div data-panel="equip">
-          <Card title="장비">
+          <Card title="장비" action={editButton("equip")}>
+            {owner && edit?.panel === "equip" ? (
+              <EquipForm profile={owner.profile} onSave={owner.save} onClose={close} focus={edit.focus} />
+            ) : (
             <div className={s.grid}>
               {EQUIP_SLOTS.map((k) => (
-                <div key={k} className={s.tile}>
+                <div key={k} className={`${s.tile} ${owner ? s.tapTile : ""}`} {...tap("equip", k)} aria-label={owner ? `${SLOT_LABELS[k]} 입력` : undefined}>
                   <span className={s.tileIcon} title={SLOT_LABELS[k]}>
                     <SlotIcon slot={k} size={18} />
                     <span className={s.srOnly}>{SLOT_LABELS[k]}</span>
@@ -205,13 +237,17 @@ export function CharacterSheet({
                 </div>
               ))}
             </div>
+            )}
           </Card>
         </div>
 
         <div data-panel="class">
-          <Card title="클래스 · 자산">
+          <Card title="클래스 · 자산" action={editButton("class")}>
+            {owner && edit?.panel === "class" ? (
+              <ClassForm profile={owner.profile} onSave={owner.save} onClose={close} focus={edit.focus} />
+            ) : (
             <div className={s.grid}>
-              <div className={s.tile}>
+              <div className={`${s.tile} ${owner ? s.tapTile : ""}`} {...tap("class", "class")} aria-label={owner ? "클래스 입력" : undefined}>
                 <span className="label">클래스</span>
                 {trailing?.("class")}
                 <span className={`${s.tileValue} ${s.classValue}`}>
@@ -220,7 +256,7 @@ export function CharacterSheet({
                 </span>
               </div>
               {data.jobTitle !== undefined && (
-                <div className={s.tile}>
+                <div className={`${s.tile} ${owner ? s.tapTile : ""}`} {...tap("class", "job_title")} aria-label={owner ? "직업 입력" : undefined}>
                   <span className="label">직업</span>
                   {trailing?.("job_title")}
                   <span className={s.tileValue}>
@@ -228,7 +264,7 @@ export function CharacterSheet({
                   </span>
                 </div>
               )}
-              <div className={`${s.tile} ${s.tileWide}`}>
+              <div className={`${s.tile} ${s.tileWide} ${owner ? s.tapTile : ""}`} {...tap("class", "wealth")} aria-label={owner ? "자산 티어 입력" : undefined}>
                 <span className="label">자산 티어</span>
                 {trailing?.("wealth")}
                 <span className={s.tileValue}>
@@ -238,6 +274,7 @@ export function CharacterSheet({
                 </span>
               </div>
             </div>
+            )}
           </Card>
         </div>
 

@@ -6,7 +6,7 @@ import { CharacterSheet } from "@/components/CharacterSheet";
 import { ProfileEditor } from "@/components/ProfileEditor";
 import { TopBar } from "@/components/TopBar";
 import { VisibilityToggle } from "@/components/VisibilityToggle";
-import { SLOT_FIELDS } from "@/components/EquipPopover";
+import { SLOT_FIELDS } from "@/components/EquipFields";
 import { useGameEvents } from "@/lib/events";
 import { FIELD_VISIBILITY } from "@/lib/fields";
 import { EQUIP_SLOTS, WEALTH_TIERS } from "@/lib/game";

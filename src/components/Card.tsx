@@ -8,7 +8,18 @@ import s from "./ui.module.css";
 
 // Entry (docs/BRAND.md, Motion): the card pops up with a little overshoot and
 // its contents follow. During boot the cards cascade down the column.
-export function Card({ title, children, className }: { title?: string; children: ReactNode; className?: string }) {
+export function Card({
+  title,
+  action,
+  children,
+  className,
+}: {
+  title?: string;
+  /** Small control at the right of the title row (e.g. the panel edit button). */
+  action?: ReactNode;
+  children: ReactNode;
+  className?: string;
+}) {
   const root = useRef<HTMLElement>(null);
   const running = useRef<JSAnimation[]>([]);
 
@@ -38,7 +49,12 @@ export function Card({ title, children, className }: { title?: string; children:
 
   return (
     <section ref={root} className={`${s.card} ${className ?? ""}`}>
-      {title && <h2 className={s.cardTitle}>{title}</h2>}
+      {(title || action) && (
+        <div className={s.cardHead}>
+          {title && <h2 className={s.cardTitle}>{title}</h2>}
+          {action}
+        </div>
+      )}
       {children}
     </section>
   );
