@@ -4,30 +4,31 @@
   padding: calc(var(--space) * 6);
 }
 
-.header {
-  padding-block: calc(var(--space) * 2) calc(var(--space) * 6);
-}
-
 .hero {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(380px, 100%), 1fr));
   align-items: center;
   gap: calc(var(--space) * 8);
+  padding-top: calc(var(--space) * 6);
 }
 
-.headline {
-  font-size: clamp(36px, 6vw, 60px);
-  line-height: 1.12;
-  text-wrap: balance;
+/* Title: the logo badge over the big name. The star stays upright (docs/BRAND.md §2). */
+.title {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: calc(var(--space) * 5);
 }
-
-.lede {
-  margin-top: calc(var(--space) * 4);
-  max-width: 34ch;
-  font-size: 17px;
-  line-height: 1.6;
-  color: var(--text-dim);
-  text-wrap: pretty;
+.mark {
+  width: clamp(72px, 9vw, 104px);
+  height: auto;
+  filter: drop-shadow(0 4px 0 var(--line-strong));
+}
+.name {
+  font-size: clamp(64px, 11vw, 128px);
+  line-height: 0.95;
+  letter-spacing: -0.01em;
+  color: var(--text);
 }
 
 .cta {
@@ -39,9 +40,9 @@
 .stage {
   height: min(560px, 70vh);
   border-radius: var(--radius-lg);
-  border: 1.5px solid var(--line);
-  background: radial-gradient(120% 70% at 50% 30%, #fffdf8 0%, var(--surface-soft) 45%, var(--bg-deep) 100%);
-  box-shadow: var(--lift);
+  border: 1.5px solid var(--stage-line);
+  background: radial-gradient(120% 70% at 50% 30%, var(--stage-light) 0%, var(--stage-mid) 45%, var(--stage-deep) 100%);
+  box-shadow: 0 2px 0 var(--stage-edge), 0 10px 24px rgba(92, 64, 40, 0.07);
   overflow: hidden;
 }
 

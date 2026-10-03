@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { Logo } from "@/components/Logo";
+import { LogoMark } from "@/components/Logo";
 import { signInWithGoogle } from "@/lib/supabase";
 import { useSession } from "@/lib/useSession";
 import s from "./page.module.css";
@@ -30,19 +30,19 @@ export default function Landing() {
 
   return (
     <main className={s.landing}>
-      <header className={s.header}>
-        <Logo />
-      </header>
       <section className={s.hero}>
         <div className={s.copy}>
-          <h1 className={`display ${s.headline}`}>
-            인생이라는 게임,
-            <br />
-            주인공은 나.
+          {/* The wordmark is the whole hero: badge on top, the name set large. */}
+          <h1 className={s.title}>
+            <LogoMark className={s.mark} />
+            <span className={`display ${s.name}`}>
+              Player
+              <br />
+              One
+            </span>
           </h1>
-          <p className={s.lede}>내 몸과 일, 자산을 캐릭터 스탯처럼 기록하고 키워요. 무엇을 보여줄지는 항상 내가 정해요.</p>
           <button className={`btn ${s.cta}`} onClick={() => signInWithGoogle()} disabled={session === undefined}>
-            모험 시작하기 — Google로 계속
+            Google로 시작하기
           </button>
         </div>
         <div className={s.stage} aria-label="Player One 캐릭터 미리보기">
