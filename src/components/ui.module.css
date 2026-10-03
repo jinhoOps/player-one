@@ -220,6 +220,10 @@
   display: grid;
   gap: var(--space);
 }
+.popoverForm input {
+  width: 100%;
+  min-width: 0;
+}
 .popoverActions {
   display: flex;
   gap: calc(var(--space) * 2);

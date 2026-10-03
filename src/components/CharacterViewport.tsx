@@ -83,6 +83,7 @@ const PALETTE = {
   bottomBase: "#cdc4b6",
   shoes: "#e08a68",
   shoesBase: "#9a948e",
+  hat: "#6fa3c7",
 };
 
 const toyVert = /* glsl */ `
@@ -311,8 +312,87 @@ function ToyBody({ morph, equipped }: { morph: BodyMorph; equipped: Record<Equip
   return (
     <group ref={root}>
       <FaceDecals face={face} eyes={eyes} />
+      {equipped.head && <Hat head={body.head} body={shell} />}
       <mesh geometry={geometry}>
         <shaderMaterial ref={shell} vertexShader={toyVert} fragmentShader={toyFrag} uniforms={uniforms} />
+      </mesh>
+    </group>
+  );
+}
+
+const partVert = /* glsl */ `
+  varying vec3 vNv;
+  varying vec3 vView;
+  void main() {
+    vec4 mv = modelViewMatrix * vec4(position, 1.0);
+    vNv = normalize(normalMatrix * normal);
+    vView = normalize(-mv.xyz);
+    gl_Position = projectionMatrix * mv;
+  }`;
+
+const partFrag = /* glsl */ `
+  uniform vec3 uColor;
+  uniform vec3 uAccent;
+  uniform float uLit;
+  uniform float uDim;
+  uniform float uFlash;
+  varying vec3 vNv;
+  varying vec3 vView;
+  void main() {
+    vec3 N = normalize(vNv);
+    vec3 V = normalize(vView);
+    vec3 L = normalize(vec3(-0.45, 0.6, 0.66));
+    float diffuse = clamp((dot(N, L) + 0.35) / 1.35, 0.0, 1.0);
+    float ambient = mix(0.34, 0.52, N.y * 0.5 + 0.5);
+    float gloss = pow(max(dot(N, normalize(L + V)), 0.0), 36.0) * 0.16;
+    float facing = max(dot(N, V), 0.0);
+    float rim = pow(1.0 - facing, 3.0);
+    vec3 c = uColor * (ambient + diffuse * 0.72) + gloss + rim * 0.16 * vec3(0.8, 0.88, 1.0);
+    c = mix(c, c * 0.45, uDim);
+    c = mix(c, uAccent, uLit * 0.12) + uAccent * uLit * pow(1.0 - facing, 2.0) * 0.9;
+    c = mix(c, vec3(1.0), uFlash * 0.6) + uAccent * uFlash * rim;
+    gl_FragColor = vec4(c, 1.0);
+    #include <colorspace_fragment>
+  }`;
+
+// Head slot equipped: a soft cap with a short brim sits over the hair. It
+// shares the body's hover and equip-flash state through the body's uniforms.
+function Hat({ head, body }: { head: BodyMesh["head"]; body: RefObject<ShaderMaterial | null> }) {
+  const [cx, cy, cz] = head.center;
+  const mat = useRef<ShaderMaterial>(null);
+  const uniforms = useMemo(
+    () => ({
+      uColor: { value: new Color(PALETTE.hat) },
+      uAccent: { value: SKY },
+      uLit: { value: 0 },
+      uDim: { value: 0 },
+      uFlash: { value: 0 },
+    }),
+    [],
+  );
+  useFrame(() => {
+    if (!mat.current || !body.current) return;
+    const b = body.current.uniforms;
+    const u = mat.current.uniforms;
+    const onHead = Math.abs(b.uSlot.value - SLOT_INDEX.head) < 0.5;
+    u.uLit.value = onHead ? b.uHover.value : 0;
+    u.uDim.value = onHead ? 0 : b.uHover.value;
+    u.uFlash.value = Math.abs(b.uFlashSlot.value - SLOT_INDEX.head) < 0.5 ? b.uFlash.value : 0;
+  });
+  const material = (
+    <shaderMaterial ref={mat} vertexShader={partVert} fragmentShader={partFrag} uniforms={uniforms} />
+  );
+  return (
+    <group position={[cx, cy, cz]}>
+      {/* Dome: the top half of a sphere that just encloses the hair, its rim at the brow. */}
+      <mesh position={[0, 0.02, -0.012]} scale={[0.252, 0.248, 0.246]}>
+        <sphereGeometry args={[1, 40, 20, 0, Math.PI * 2, 0, Math.PI * 0.5]} />
+        {material}
+      </mesh>
+      {/* Brim: a flattened disc poking out over the forehead. */}
+      <mesh position={[0, 0.03, 0.2]} rotation-x={0.15} scale={[0.16, 0.013, 0.1]}>
+        <sphereGeometry args={[1, 32, 12]} />
+        {material}
       </mesh>
     </group>
   );
