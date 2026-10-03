@@ -140,6 +140,27 @@
   overflow-wrap: anywhere;
 }
 
+/* Owner view: tiles open their card form; the title row has an 입력 button. */
+.tapTile {
+  composes: tapTile from "./ui.module.css";
+}
+.editButton {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space);
+  padding: var(--space) calc(var(--space) * 2.5);
+  border-radius: var(--radius-pill);
+  background: var(--leaf-soft);
+  color: var(--leaf);
+  font-size: 12px;
+  font-weight: 700;
+  transition: background 120ms, color 120ms;
+}
+.editButton:hover {
+  background: var(--leaf);
+  color: #fff;
+}
+
 .classValue {
   display: inline-flex;
   align-items: center;

@@ -9,9 +9,15 @@
   padding: calc(var(--space) * 3.5) calc(var(--space) * 4);
   box-shadow: var(--lift);
 }
+.cardHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(var(--space) * 2);
+  margin-bottom: calc(var(--space) * 2);
+}
 .cardTitle {
   display: block;
-  margin-bottom: calc(var(--space) * 2);
   font-family: var(--font-display);
   font-size: 16px;
   color: var(--text);
@@ -27,9 +33,6 @@
   padding: calc(var(--space) * 1.5) calc(var(--space) * 3) calc(var(--space) * 2);
   border-radius: 14px;
   background: var(--surface-soft);
-}
-.statRowEditing {
-  grid-column: 1 / -1;
 }
 .statTrail {
   justify-self: end;
@@ -89,7 +92,7 @@
   transition: filter 240ms 300ms, opacity 240ms 300ms;
 }
 
-/* StatRow in-place editing + StatInput */
+/* StatRow value: highlights when its tile is hovered (owner view) */
 .editable {
   font: inherit;
   border-radius: var(--radius-sm);
@@ -101,40 +104,20 @@
   background: var(--leaf-soft);
   color: var(--leaf);
 }
-.statEdit {
-  grid-column: 2 / -1;
+/* Owner view: a whole tile is the tap target that opens its card form. */
+.tapTile {
+  cursor: pointer;
+  transition: background 120ms, box-shadow 120ms;
 }
-.statInput {
-  display: flex;
-  align-items: center;
-  gap: var(--space);
-}
-.statInput input {
-  width: 76px;
-  text-align: right;
-  font-size: 16px;
-}
-.scrub,
-.step {
-  width: 30px;
-  height: 30px;
-  display: inline-grid;
-  place-items: center;
-  border-radius: var(--radius-pill);
-  background: var(--surface-soft);
-  border: 1.5px solid var(--line);
-  color: var(--text-dim);
-  transition: color 120ms, border-color 120ms, background 120ms;
-}
-.scrub {
-  cursor: ew-resize;
-  touch-action: none;
-}
-.scrub:hover,
-.step:hover {
-  color: var(--leaf);
-  border-color: var(--leaf);
+.tapTile:hover {
   background: var(--leaf-soft);
+}
+.tapTile:hover .editable {
+  color: var(--leaf);
+}
+.tapTile:focus-visible {
+  outline: 2px solid var(--leaf);
+  outline-offset: 2px;
 }
 
 /* VisibilityToggle: a little round chip — green and open when public. */
@@ -208,30 +191,10 @@
   position: absolute;
   top: 0;
   z-index: 20;
-  width: 232px;
+  width: 312px;
 }
 .popoverLeft { left: calc(100% + 12px); }
 .popoverRight { right: calc(100% + 12px); }
-.popoverForm {
-  display: grid;
-  gap: calc(var(--space) * 2);
-}
-.popoverForm label {
-  display: grid;
-  gap: var(--space);
-}
-.popoverForm input {
-  width: 100%;
-  min-width: 0;
-}
-.popoverActions {
-  display: flex;
-  gap: calc(var(--space) * 2);
-  justify-content: flex-end;
-}
-.popoverActions :global(.btn) {
-  padding: calc(var(--space) * 2) calc(var(--space) * 4);
-}
 
 /* EffectLayer: celebration glow and confetti. Never blocks input. */
 .fx {
@@ -314,6 +277,139 @@
   min-height: 34px;
   padding: var(--space) calc(var(--space) * 3);
   font-size: 14px;
+}
+/* PanelForms: one slot (or group) per block, divided by a dashed line. */
+.formGroup {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: calc(var(--space) * 2) calc(var(--space) * 3);
+  align-items: center;
+  padding-top: calc(var(--space) * 2);
+  border-top: 1.5px dashed var(--line);
+}
+.formGroup:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+.formGroupTitle {
+  grid-column: 1 / -1;
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--space) * 1.5);
+  font-weight: 700;
+  font-size: 13px;
+}
+.formHint {
+  grid-column: 2 / -1;
+  margin-top: calc(var(--space) * -1);
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.formActions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: calc(var(--space) * 2);
+  margin-top: var(--space);
+}
+.formActions :global(.btn) {
+  padding: calc(var(--space) * 2) calc(var(--space) * 4.5);
+  font-size: 14px;
+}
+/* Number box with its unit tucked inside on the right. */
+.unitInput {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+.form .unitInput input {
+  padding-right: 40px;
+  text-align: right;
+}
+/* Arrow keys still step; the tiny spinner arrows only crowd the unit. */
+.unitInput input::-webkit-outer-spin-button,
+.unitInput input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.unitInput input {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.unit {
+  position: absolute;
+  right: calc(var(--space) * 3);
+  font-size: 12px;
+  color: var(--text-dim);
+  pointer-events: none;
+}
+/* Size chips: tap to pick, tap again to clear; "직접" takes anything else. */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space);
+}
+.chip {
+  min-width: 36px;
+  height: 30px;
+  padding: 0 calc(var(--space) * 2);
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--line);
+  background: var(--surface);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dim);
+  transition: background 120ms, color 120ms, border-color 120ms;
+}
+.chip:hover {
+  border-color: var(--leaf);
+  color: var(--leaf);
+}
+.chip[aria-pressed="true"] {
+  background: var(--leaf);
+  border-color: var(--leaf);
+  color: #fff;
+}
+.form .chips .chipOther {
+  width: 60px;
+  min-height: 30px;
+  height: 30px;
+  padding: 0 calc(var(--space) * 2.5);
+  border-radius: var(--radius-pill);
+  font-size: 13px;
+}
+.form .chips .chipOtherOn {
+  border-color: var(--leaf);
+  color: var(--leaf);
+  font-weight: 600;
+}
+/* Class picker: emblem + name buttons, three or so to a row. */
+.classPick {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+  gap: var(--space);
+}
+.classChoice {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--space) * 1.5);
+  padding: var(--space) calc(var(--space) * 2) var(--space) var(--space);
+  border-radius: 12px;
+  border: 1.5px solid var(--line);
+  background: var(--surface);
+  font-size: 13px;
+  font-weight: 600;
+  transition: background 120ms, border-color 120ms, color 120ms;
+}
+.classChoice:hover {
+  border-color: var(--leaf);
+}
+.classChoice[aria-checked="true"] {
+  border-color: var(--leaf);
+  background: var(--leaf-soft);
+  color: var(--leaf);
 }
 .formSubmit {
   grid-column: 1 / -1;
