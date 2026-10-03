@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { CharacterSheet } from "@/components/CharacterSheet";
+import { HandleClaim } from "@/components/HandleClaim";
 import { ProfileEditor } from "@/components/ProfileEditor";
 import { TopBar } from "@/components/TopBar";
 import { TrophyShelf } from "@/components/TrophyShelf";
@@ -94,6 +95,7 @@ export default function MePage() {
             )}
           </>
         }
+        banner={!profile.handle && <HandleClaim onSave={(handle) => save({ handle })} />}
         footer={
           <>
             {editing && <ProfileEditor key={profile.user_id} profile={profile} onSave={saveWithEvents} />}
