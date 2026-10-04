@@ -9,7 +9,7 @@
 import { Canvas, useFrame, useThree, type ThreeElements, type ThreeEvent } from "@react-three/fiber";
 import { OrbitControls, useAnimations, useGLTF } from "@react-three/drei";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
-import { Box3, Color, Group, Mesh, MeshBasicMaterial, Object3D, Vector3 } from "three";
+import { Box3, Color, Group, Mesh, MeshBasicMaterial, Object3D, TOUCH, Vector3 } from "three";
 import { BASE_PATH } from "@/lib/basePath";
 import { TOY_TINT } from "@/lib/chibiRig";
 import { PHASES, type Phase } from "@/lib/daylight";
@@ -18,6 +18,7 @@ import { ClassEmblem } from "../ClassEmblem";
 import { Chibi } from "../Chibi";
 import {
   accelerate,
+  hitDistance,
   dropPointAt,
   fromFrac,
   groundAt,
@@ -339,48 +340,90 @@ function Daylight({ phase }: { phase: Phase }) {
   );
 }
 
+// Camera (docs/DESIGN.md §9): two modes, switched with Y.
+//   follow   — the default. A little way off at a quarter angle, the camera
+//              glides after your figure.
+//   overview — the whole book, as the village first appears.
+// Turning the view takes Space + drag (the left button is for interacting);
+// the wheel zooms any time. On touch screens two fingers turn and pinch-zoom,
+// and one finger is left for tapping (walk, mention).
+export type CamMode = "follow" | "overview";
+// `ONE` gets a value OrbitControls doesn't handle, which turns one-finger drags off.
+const TOUCHES = { ONE: -1 as unknown as TOUCH, TWO: TOUCH.DOLLY_ROTATE };
+
 const VIEW = new Vector3(0, 3.2, 4.6);
 const TARGET = new Vector3(0, 0.6, 0);
-
-/** A narrow (phone) view backs off so the whole book still fits across. */
-function FitCamera() {
-  const { camera, size } = useThree();
-  useEffect(() => {
-    const back = Math.max(1, 1.25 / (size.width / size.height));
-    camera.position.copy(TARGET).addScaledVector(new Vector3().subVectors(VIEW, TARGET), back);
-    camera.lookAt(TARGET);
-  }, [camera, size.width, size.height]);
-  return null;
-}
-
-// Space held: a quarter view at a fixed world angle that follows your figure.
-const QUARTER = new Vector3(0.24, 0.28, 0.24);
-const LOOK = new Vector3();
-const WANT = new Vector3();
-type Controls = { enabled: boolean; target: Vector3; update: () => void };
+const FOLLOW_OFFSET = new Vector3(0.24, 0.28, 0.24).normalize().multiplyScalar(0.62);
+const ZOOM: Record<CamMode, [number, number]> = { follow: [0.18, 2.4], overview: [2.2, 12] };
+type Controls = {
+  enabled: boolean;
+  enableRotate: boolean;
+  enableZoom: boolean;
+  minDistance: number;
+  maxDistance: number;
+  target: Vector3;
+  update: () => void;
+};
 
 // Space belongs to whatever has focus when it's a text field or inside a modal.
 const isTyping = (t: EventTarget | null) =>
   t instanceof HTMLElement &&
   (t.isContentEditable || t.tagName === "INPUT" || t.tagName === "TEXTAREA" || !!t.closest("[role=dialog]"));
 
-/** While Space is down the camera rides along with you; let go and it returns to where it was. */
-function FollowCam({ anchors, selfKey }: { anchors: Anchors; selfKey: string | null }) {
-  const held = useRef(false);
-  const saved = useRef<{ pos: Vector3; target: Vector3 } | null>(null);
+/** The whole book in view; a narrow (phone) screen backs off so it still fits across. */
+function overviewPose(aspect: number, out: Vector3) {
+  const back = Math.max(1, 1.25 / aspect);
+  return out.copy(TARGET).addScaledVector(D_VIEW.subVectors(VIEW, TARGET), back);
+}
+
+const D_VIEW = new Vector3();
+const FOCUS = new Vector3();
+const STEP = new Vector3();
+const GOAL = new Vector3();
+const RAY_DIR = new Vector3();
+
+function CameraRig({
+  mode,
+  anchors,
+  selfKey,
+  book,
+}: {
+  mode: CamMode;
+  anchors: Anchors;
+  selfKey: string | null;
+  book: Object3D | null;
+}) {
+  const gl = useThree((s) => s.gl);
+  const size = useThree((s) => s.size);
+  const space = useRef(false);
+  /** Gliding to a new mode's pose; follow keeps the user's angle and distance. */
+  const flying = useRef(true);
+  const shown = useRef<CamMode | null>(null);
+  const offset = useRef(FOLLOW_OFFSET.clone());
+  const coarse = useMemo(() => typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches, []);
+
+  // A new canvas size re-frames the overview.
+  useEffect(() => {
+    flying.current = true;
+  }, [size.width, size.height]);
 
   useEffect(() => {
+    const el = gl.domElement;
+    const set = (on: boolean) => {
+      space.current = on;
+      el.style.cursor = on ? "grab" : "";
+    };
     const down = (e: KeyboardEvent) => {
       if (e.code !== "Space" || isTyping(e.target)) return;
       e.preventDefault(); // no page scroll, no pressing a focused name tag
-      held.current = true;
+      set(true);
     };
     const up = (e: KeyboardEvent) => {
       if (e.code !== "Space") return;
       if (!isTyping(e.target)) e.preventDefault();
-      held.current = false;
+      set(false);
     };
-    const blur = () => void (held.current = false);
+    const blur = () => set(false);
     window.addEventListener("keydown", down);
     window.addEventListener("keyup", up);
     window.addEventListener("blur", blur);
@@ -389,36 +432,77 @@ function FollowCam({ anchors, selfKey }: { anchors: Anchors; selfKey: string | n
       window.removeEventListener("keyup", up);
       window.removeEventListener("blur", blur);
     };
-  }, []);
+  }, [gl]);
+
+  // A wall or roof between you and the camera pulls the camera in front of it
+  // (third-person camera). That's only for drawing: before the controls run
+  // again the camera goes back where you put it, so the zoom isn't eaten away.
+  const pulled = useRef(false);
+  const wanted = useMemo(() => new Vector3(), []);
+  useFrame(({ camera }) => {
+    if (pulled.current) camera.position.copy(wanted);
+    pulled.current = false;
+  }, -2); // before OrbitControls (-1)
+
+  const pullIn = (camera: { position: Vector3 }, target: Vector3) => {
+    if (!book) return;
+    wanted.copy(camera.position);
+    RAY_DIR.subVectors(camera.position, target);
+    const len = RAY_DIR.length();
+    if (len < 1e-4) return;
+    RAY_DIR.divideScalar(len);
+    const hit = hitDistance(book, target, RAY_DIR, len);
+    if (hit === null) return;
+    camera.position.copy(target).addScaledVector(RAY_DIR, Math.max(hit - 0.015, 0.03));
+    pulled.current = true;
+  };
 
   useFrame((state, dt) => {
     const { camera } = state;
-    const controls = state.controls as Controls | null;
+    const controls = state.controls as unknown as Controls | null;
     if (!controls) return;
     const a = selfKey ? anchors.get(selfKey) : undefined;
-    if (held.current && a) {
-      if (!saved.current) saved.current = { pos: camera.position.clone(), target: controls.target.clone() };
-      controls.enabled = false;
-      a.getWorldPosition(LOOK);
-      LOOK.y -= FIGURE_SCALE * 0.5; // the anchor sits over the head; aim at the body
-      const k = 1 - Math.exp(-dt * 10);
-      camera.position.lerp(WANT.copy(LOOK).add(QUARTER), k);
-      controls.target.lerp(LOOK, k);
-      camera.lookAt(controls.target);
-    } else if (saved.current) {
-      const { pos, target } = saved.current;
-      const k = 1 - Math.exp(-dt * 8);
+    // Aim at the middle of the figure (the anchor floats just over its head).
+    const self = a ? a.getWorldPosition(FOCUS).setY(FOCUS.y - FIGURE_SCALE * 0.55) : null;
+
+    if (shown.current !== mode) {
+      shown.current = mode;
+      flying.current = true;
+    }
+    const [near, far] = ZOOM[mode];
+
+    if (flying.current) {
+      if (mode === "follow" && !self) return; // wait for your figure to arrive
+      const target = mode === "follow" ? self! : TARGET;
+      const pos = mode === "follow" ? GOAL.copy(self!).add(offset.current) : overviewPose(size.width / size.height, GOAL);
+      const k = 1 - Math.exp(-dt * 4);
+      controls.enableRotate = false;
+      controls.enableZoom = false;
+      controls.minDistance = 0;
+      controls.maxDistance = Infinity;
       camera.position.lerp(pos, k);
       controls.target.lerp(target, k);
       camera.lookAt(controls.target);
-      if (camera.position.distanceTo(pos) < 0.01) {
-        camera.position.copy(pos);
-        controls.target.copy(target);
-        saved.current = null;
-        controls.enabled = true;
-        controls.update();
-      }
+      if (camera.position.distanceTo(pos) < 0.005 && controls.target.distanceTo(target) < 0.005) flying.current = false;
+      if (mode === "follow") pullIn(camera, controls.target);
+      return;
     }
+
+    controls.minDistance = near;
+    controls.maxDistance = far;
+    controls.enableZoom = true;
+    controls.enableRotate = space.current || coarse;
+
+    // Follow: slide the camera and its pivot along with you; the angle and
+    // distance stay whatever you turned and zoomed them to. Held still while
+    // you carry your figure (the drop point is read through this camera).
+    if (mode === "follow" && self && controls.enabled) {
+      STEP.subVectors(self, controls.target).multiplyScalar(1 - Math.exp(-dt * 6));
+      controls.target.add(STEP);
+      camera.position.add(STEP);
+      offset.current.subVectors(camera.position, controls.target);
+    }
+    if (mode === "follow") pullIn(camera, controls.target);
   });
   return null;
 }
@@ -448,6 +532,7 @@ function Scene({
   onDrop,
   onCarry,
   registerGrab,
+  camMode,
 }: {
   phase: Phase;
   villagers: Villager[];
@@ -461,6 +546,7 @@ function Scene({
   onCarry: (carrying: boolean) => void;
   /** Hands over the pick-up starter, for your name tag to call. */
   registerGrab: (start: (e: PointerEvent) => void) => void;
+  camMode: CamMode;
 }) {
   // Figures wait for the book: they stand where a ray from above lands on it.
   const [foot, setFoot] = useState<Footprint | null>(null);
@@ -566,6 +652,7 @@ function Scene({
         ))}
       {marker && <WalkMarker key={marker.id} at={marker.at} done={marker.done} onGone={() => setMarker(null)} />}
       <DropMark carry={carry} />
+      <CameraRig mode={camMode} anchors={anchors} selfKey={selfKey} book={foot?.book ?? null} />
     </>
   );
 }
@@ -629,6 +716,16 @@ export default function BookVillage({
   const [hover, setHover] = useState<string | null>(null);
   const [menu, setMenu] = useState<Menu | null>(null);
   const [carrying, setCarrying] = useState(false);
+  const [camMode, setCamMode] = useState<CamMode>("follow");
+  // Y switches between following your figure and the whole-village view.
+  useEffect(() => {
+    const key = (e: KeyboardEvent) => {
+      if (e.code !== "KeyY" || e.repeat || e.ctrlKey || e.metaKey || e.altKey || isTyping(e.target)) return;
+      setCamMode((m) => (m === "follow" ? "overview" : "follow"));
+    };
+    window.addEventListener("keydown", key);
+    return () => window.removeEventListener("keydown", key);
+  }, []);
   // Your name tag starts a pick-up too: the figure itself is small to hit.
   const grabRef = useRef<((e: PointerEvent) => void) | null>(null);
   const registerGrab = useCallback((start: (e: PointerEvent) => void) => {
@@ -681,7 +778,7 @@ export default function BookVillage({
         if (menu && !(e.target as HTMLElement).closest(`.${x.menu}`)) setMenu(null);
       }}
     >
-      <Canvas camera={{ position: VIEW.toArray(), fov: 35 }} dpr={[1, 2]} gl={{ antialias: true, alpha: true }}>
+      <Canvas camera={{ position: VIEW.toArray(), fov: 35, near: 0.01, far: 100 }} dpr={[1, 2]} gl={{ antialias: true, alpha: true }}>
         <Suspense fallback={null}>
           <Scene
             phase={phase}
@@ -695,6 +792,7 @@ export default function BookVillage({
             onDrop={onDrop}
             onCarry={setCarrying}
             registerGrab={registerGrab}
+            camMode={camMode}
           />
         </Suspense>
         <LabelTracker
@@ -706,16 +804,8 @@ export default function BookVillage({
             if (at) el.style.transform = `translate(${at[0]}px, ${at[1]}px) translate(-50%, -100%)`;
           }}
         />
-        <FitCamera />
-        <FollowCam anchors={anchors} selfKey={selfKey} />
-        <OrbitControls
-          makeDefault
-          target={TARGET}
-          enablePan={false}
-          minDistance={2.2}
-          maxDistance={12}
-          maxPolarAngle={Math.PI * 0.45}
-        />
+        {/* Rotation, zoom limits and the pivot are set by CameraRig each frame, not here. */}
+        <OrbitControls makeDefault enablePan={false} maxPolarAngle={Math.PI * 0.45} touches={TOUCHES} />
       </Canvas>
       <div className={x.labels}>
         {villagers.map((v) => (
@@ -761,6 +851,16 @@ export default function BookVillage({
           </div>
         ))}
       </div>
+      <button
+        type="button"
+        className={x.camToggle}
+        aria-pressed={camMode === "overview"}
+        title="Y로도 바꿀 수 있어요"
+        onClick={() => setCamMode((m) => (m === "follow" ? "overview" : "follow"))}
+      >
+        {camMode === "follow" ? "마을 전경 보기" : "내 캐릭터 따라가기"}
+        <kbd>Y</kbd>
+      </button>
       {target && menu && (
         <div className={x.menu} role="menu" style={{ left: menu.x, top: menu.y, width: MENU_W }}>
           <p className={x.menuHead}>

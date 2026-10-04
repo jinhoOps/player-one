@@ -156,6 +156,37 @@ button.name:hover,
   font-size: 12px;
   font-weight: 700;
 }
+/* Camera mode switch (also Y), bottom-left of the map, above the credit line. */
+.camToggle {
+  position: absolute;
+  left: calc(var(--space) * 4);
+  bottom: calc(var(--space) * 4);
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--space) * 2);
+  padding: calc(var(--space) * 2) calc(var(--space) * 2) calc(var(--space) * 2) calc(var(--space) * 3);
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: var(--lift);
+  font-size: 12px;
+  font-weight: 700;
+}
+.camToggle:hover {
+  background: var(--surface);
+}
+.camToggle kbd {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  background: var(--bg-deep);
+  font: inherit;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
 /* Someone called you: small cards dropping in at the top of the map. */
 .notices {
   position: absolute;
@@ -304,6 +335,16 @@ button.name:hover,
     top: calc(var(--space) * 5);
   }
   .hint {
+    display: none;
+  }
+  /* The chat and credit own the bottom on phones; the switch takes the hint's corner. */
+  .camToggle {
+    left: auto;
+    bottom: auto;
+    right: calc(var(--space) * 3);
+    top: calc(var(--space) * 3);
+  }
+  .camToggle kbd {
     display: none;
   }
   .chat {

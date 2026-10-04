@@ -138,7 +138,7 @@ export default function VillagePage() {
                 {status === "joining" ? "들어가는 중…" : status === "error" ? "연결이 끊겼어요" : `${others.length + 1}명 접속 중`}
               </span>
             </div>
-            <p className={x.hint}>우클릭 이동 · 내 캐릭터 꾹 눌러 옮기기 · 사람 클릭 @멘션 · 우클릭 메뉴 · Space 꾹 내 시점</p>
+            <p className={x.hint}>우클릭 이동 · 내 캐릭터 꾹 눌러 옮기기 · 사람 클릭 @멘션 · 우클릭 메뉴 · Space+드래그 시점 · 휠 확대 · Y 전경</p>
 
             {notices.length > 0 && (
               <ul className={x.notices} aria-live="polite">

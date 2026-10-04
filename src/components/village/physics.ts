@@ -48,6 +48,14 @@ export function floorBelow(book: Object3D, x: number, fromY: number, z: number) 
   return hit ? hit.point.y : null;
 }
 
+/** Distance along a ray to the map, or null if nothing within `far`. */
+export function hitDistance(book: Object3D, from: Vector3, dir: Vector3, far: number) {
+  ray.set(from, dir);
+  ray.near = 0;
+  ray.far = far;
+  return ray.intersectObject(book, true)[0]?.distance ?? null;
+}
+
 /** Flattened normal of a wall within reach ahead (at knee height), or null if the way is clear. */
 function wallAhead(book: Object3D, pos: Vector3, dir: Vector3, reach: number) {
   ray.set(O.set(pos.x, pos.y + KNEE, pos.z), dir);
