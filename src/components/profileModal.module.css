@@ -1,0 +1,101 @@
+/* ProfileModal: a compact public profile — the sheet's facts without the 3D stage. */
+.summary {
+  display: grid;
+  gap: calc(var(--space) * 4);
+}
+.summary section {
+  display: grid;
+  gap: calc(var(--space) * 2);
+}
+.sub {
+  margin-top: calc(var(--space) * -1);
+  font-size: 13px;
+  color: var(--text-dim);
+}
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: calc(var(--space) * 2);
+}
+.chip {
+  padding: var(--space) calc(var(--space) * 3);
+  border-radius: var(--radius-pill);
+  background: var(--leaf-soft);
+  color: var(--leaf);
+  font-size: 13px;
+  font-weight: 700;
+}
+.dim {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-dim);
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: calc(var(--space) * 2);
+}
+.stats div {
+  padding: calc(var(--space) * 2) calc(var(--space) * 3);
+  border-radius: var(--radius-md);
+  background: var(--surface-soft);
+}
+.stats dd {
+  font-family: var(--font-display);
+  font-size: 20px;
+}
+.stats small {
+  margin-left: 2px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.gear {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: calc(var(--space) * 2);
+}
+.gear li {
+  display: grid;
+  justify-items: center;
+  gap: var(--space);
+  padding: calc(var(--space) * 2) var(--space);
+  border: 1.5px dashed var(--line-strong);
+  border-radius: var(--radius-md);
+  color: var(--text-dim);
+  font-size: 11px;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+.gear li[data-on] {
+  border-style: solid;
+  border-color: var(--line-strong);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.trophies {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: calc(var(--space) * 2);
+}
+.trophies li {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--space) * 1.5);
+  min-width: 0;
+  padding: calc(var(--space) * 1.5) calc(var(--space) * 2);
+  border-radius: var(--radius-sm);
+  background: var(--surface-soft);
+  font-size: 12px;
+}
+.trophies li span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

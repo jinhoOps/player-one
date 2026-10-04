@@ -1,29 +1,46 @@
 "use client";
 
 // The village map (docs/DESIGN.md §9): "Medieval Fantasy Book" by Pixel
-// (CC-BY-4.0). Players stand on its pages as chibis; click the ground to walk
-// there. Head labels (class emblem + name, speech bubble) are a DOM overlay
-// that follows each head on screen. Light follows the Korea clock.
+// (CC-BY-4.0). Players stand on its pages as chibis; right click the ground to
+// walk there, hold your own figure to pick it up and drop it somewhere else.
+// Head labels (class emblem + name, speech bubble) are a DOM overlay that
+// follows each head on screen. Light follows the Korea clock.
 
-import { Canvas, useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
+import { Canvas, useFrame, useThree, type ThreeElements, type ThreeEvent } from "@react-three/fiber";
 import { OrbitControls, useAnimations, useGLTF } from "@react-three/drei";
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { Box3, Color, Group, Mesh, Object3D, Raycaster, Vector3 } from "three";
+import { Suspense, useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { Box3, Color, Group, Mesh, MeshBasicMaterial, Object3D, Vector3 } from "three";
 import { BASE_PATH } from "@/lib/basePath";
 import { TOY_TINT } from "@/lib/chibiRig";
 import { PHASES, type Phase } from "@/lib/daylight";
 import type { Bubble, Villager } from "@/lib/useVillage";
 import { ClassEmblem } from "../ClassEmblem";
 import { Chibi } from "../Chibi";
+import {
+  accelerate,
+  dropPointAt,
+  fromFrac,
+  groundAt,
+  settle,
+  toFrac,
+  walkStep,
+  type Body,
+  type Footprint,
+} from "./physics";
 import x from "./village.module.css";
 
 export const BOOK_URL = `${BASE_PATH}/models/book/scene.gltf`;
 const BOOK_WIDTH = 4;
 const FIGURE_SCALE = 0.24;
 const WALK_SPEED = 0.45; // world units per second
+const ARRIVE = 0.004; // close enough to the target
+const HOLD_MS = 350; // press on your own figure this long to pick it up
+const LIFT = 0.12; // how high a picked-up figure dangles over the drop spot
+const SKY = "#4f9bd9"; // --sky: neutral markers (docs/BRAND.md §3)
 
-type Footprint = { book: Group; box: Box3 };
 type Anchors = Map<string, Object3D>;
+/** Your figure in hand: where it would land, and the spot it was just dropped on. */
+type Carry = { point: Vector3 | null; drop: [number, number] | null };
 
 function Book({
   onReady,
@@ -38,6 +55,7 @@ function Book({
   const root = useRef<Group>(null);
   const model = useMemo(() => {
     const m = scene.clone(true);
+    accelerate(m);
     const box = new Box3().setFromObject(m);
     const size = box.getSize(new Vector3());
     const k = BOOK_WIDTH / Math.max(size.x, size.z);
@@ -77,13 +95,6 @@ function Book({
   );
 }
 
-/** World point on the book's surface under a footprint fraction. */
-function groundAt({ book, box }: Footprint, [fx, fz]: [number, number]) {
-  const p = new Vector3(box.min.x + (box.max.x - box.min.x) * fx, box.max.y + 1, box.min.z + (box.max.z - box.min.z) * fz);
-  const hit = new Raycaster(p, new Vector3(0, -1, 0)).intersectObject(book, true).find((h) => (h.object as Mesh).isMesh);
-  return hit ? hit.point : new Vector3(p.x, 0, p.z);
-}
-
 /** What you can do to another villager: hover, left click to @mention, right click for the menu. */
 type Act = {
   hover: (key: string | null) => void;
@@ -91,53 +102,136 @@ type Act = {
   menu: (v: Villager, clientX: number, clientY: number) => void;
 };
 
-function Figure({ v, foot, anchors, act }: { v: Villager; foot: Footprint; anchors: Anchors; act?: Act }) {
-  const target = useMemo(() => groundAt(foot, v.at), [foot, v.at]);
-  const body = useRef<Group>(null);
-  const from = useRef<Vector3 | null>(null);
+/** Your own figure: it can be picked up, and it reports where it ended up. */
+type Own = {
+  /** Where it would land while in hand, else null. */
+  held: () => Vector3 | null;
+  /** The spot it was just dropped on, once. */
+  takeDrop: () => [number, number] | null;
+  grab: (e: ThreeEvent<PointerEvent>) => void;
+  hover: (key: string | null) => void;
+  onSettle: (at: [number, number]) => void;
+};
 
-  useFrame(({ clock }, dt) => {
+const AIM = new Vector3();
+const DIR = new Vector3();
+const HELD = new Vector3();
+
+function Figure({ v, foot, anchors, act, own }: { v: Villager; foot: Footprint; anchors: Anchors; act?: Act; own?: Own }) {
+  const body = useRef<Group>(null);
+  const pose = useRef<Group>(null);
+  const phys = useRef<Body | null>(null);
+  const seenWarp = useRef(v.warp ?? 0);
+  /** Just dropped here: walk nowhere until presence catches up with the new spot. */
+  const pending = useRef<[number, number] | null>(null);
+  /** The target we gave up on (a wall, the edge): don't keep bumping into it. */
+  const halted = useRef<string | null>(null);
+  const walking = useRef(false);
+  const squash = useRef(0);
+
+  useFrame(({ clock }, rawDt) => {
     const g = body.current;
-    if (!g) return;
-    if (!from.current) {
-      from.current = target.clone();
-      g.position.copy(target);
+    const pz = pose.current;
+    if (!g || !pz) return;
+    const dt = Math.min(rawDt, 1 / 20);
+    const t = clock.elapsedTime;
+    const { book } = foot;
+    if (!phys.current) phys.current = { pos: groundAt(foot, v.at), vy: 0, grounded: true };
+    const b = phys.current;
+    // In hand: hang over the drop spot, legs swinging.
+    const inHand = own?.held();
+    if (inHand) {
+      HELD.set(inHand.x, inHand.y + LIFT, inHand.z);
+      b.pos.lerp(HELD, 1 - Math.exp(-dt * 18));
+      b.vy = 0;
+      b.grounded = false;
+      walking.current = false;
+      g.position.copy(b.pos);
+      pz.position.y = 0;
+      pz.rotation.set(Math.sin(t * 5) * 0.12, 0, Math.sin(t * 7) * 0.18);
+      return;
     }
-    const d = new Vector3().subVectors(target, g.position);
-    d.y = 0;
-    const dist = d.length();
-    if (dist > 0.005) {
-      // Walk: straight there at a steady pace, facing the way, with a little hop.
-      const step = Math.min(dist, WALK_SPEED * dt);
-      g.position.addScaledVector(d.normalize(), step);
-      const left = new Vector3(target.x - g.position.x, 0, target.z - g.position.z).length();
-      const total = new Vector3(target.x - from.current.x, 0, target.z - from.current.z).length() || 1;
-      g.position.y = target.y + (from.current.y - target.y) * (left / total) + Math.abs(Math.sin(clock.elapsedTime * 14)) * 0.012;
-      g.rotation.y = Math.atan2(d.x, d.z);
-    } else {
-      g.position.copy(target);
-      from.current.copy(target);
+    const dropped = own?.takeDrop();
+    if (dropped) pending.current = dropped;
+    // Someone else was dropped: they show up over the new spot and fall onto it.
+    const warp = v.warp ?? 0;
+    if (warp !== seenWarp.current) {
+      seenWarp.current = warp;
+      if (!own) {
+        groundAt(foot, v.at, b.pos).y += 0.35;
+        b.vy = 0;
+        b.grounded = false;
+      }
     }
+    const p = pending.current;
+    if (p && Math.abs(p[0] - v.at[0]) < 1e-4 && Math.abs(p[1] - v.at[1]) < 1e-4) pending.current = null;
+    const at = pending.current ?? v.at;
+    const key = `${at[0]},${at[1]}`;
+    if (pending.current) fromFrac(foot, at, AIM).setY(b.pos.y);
+    else fromFrac(foot, at, AIM);
+
+    // Walk: steady pace toward the target over the terrain; new targets replace old ones.
+    const dx = AIM.x - b.pos.x;
+    const dz = AIM.z - b.pos.z;
+    const dist = Math.hypot(dx, dz);
+    let moved = false;
+    if (dist > ARRIVE && b.grounded && halted.current !== key) {
+      DIR.set(dx / dist, 0, dz / dist);
+      moved = walkStep(book, b.pos, DIR, Math.min(dist, WALK_SPEED * dt));
+      if (moved) {
+        walking.current = true;
+        g.rotation.y = Math.atan2(DIR.x, DIR.z);
+      } else halted.current = key;
+    }
+    if (halted.current && halted.current !== key) halted.current = null;
+    if (moved || !b.grounded) {
+      const impact = settle(book, b, dt);
+      if (impact > 0.4) squash.current = Math.min(0.28, impact * 0.12);
+    }
+    // Stopped (arrived or blocked): your figure tells the others where it really is.
+    if (!moved && walking.current && b.grounded) {
+      walking.current = false;
+      own?.onSettle(toFrac(foot, b.pos));
+    }
+
+    g.position.copy(b.pos);
+    pz.position.y = walking.current ? Math.abs(Math.sin(t * 14)) * 0.012 : 0;
+    pz.rotation.x *= 0.8;
+    pz.rotation.z *= 0.8;
+    const s = squash.current;
+    pz.scale.set(1 + s * 0.5, 1 - s, 1 + s * 0.5);
+    squash.current = Math.max(0, s - dt * 1.4);
   });
 
-  // Your own figure takes no clicks: they fall through to the ground under it.
-  const handlers = act && {
-    onPointerOver: (e: ThreeEvent<PointerEvent>) => {
-      e.stopPropagation();
-      act.hover(v.key);
-    },
-    onPointerOut: () => act.hover(null),
-    onClick: (e: ThreeEvent<MouseEvent>) => {
-      if (e.delta > 6) return;
-      e.stopPropagation();
-      act.mention(v);
-    },
-    onContextMenu: (e: ThreeEvent<MouseEvent>) => {
-      if (e.delta > 6) return;
-      e.stopPropagation();
-      act.menu(v, e.nativeEvent.clientX, e.nativeEvent.clientY);
-    },
-  };
+  const handlers = act
+    ? {
+        onPointerOver: (e: ThreeEvent<PointerEvent>) => {
+          e.stopPropagation();
+          act.hover(v.key);
+        },
+        onPointerOut: () => act.hover(null),
+        onClick: (e: ThreeEvent<MouseEvent>) => {
+          if (e.delta > 6) return;
+          e.stopPropagation();
+          act.mention(v);
+        },
+        onContextMenu: (e: ThreeEvent<MouseEvent>) => {
+          if (e.delta > 6) return;
+          e.stopPropagation();
+          act.menu(v, e.nativeEvent.clientX, e.nativeEvent.clientY);
+        },
+      }
+    : own
+      ? {
+          // Your own figure: hold to pick up. Right clicks fall through to the ground under it.
+          onPointerOver: (e: ThreeEvent<PointerEvent>) => {
+            e.stopPropagation();
+            own.hover(v.key);
+          },
+          onPointerOut: () => own.hover(null),
+          onPointerDown: own.grab,
+        }
+      : {};
 
   return (
     <group ref={body} {...handlers}>
@@ -148,12 +242,78 @@ function Figure({ v, foot, anchors, act }: { v: Villager; foot: Footprint; ancho
           else anchors.delete(v.key);
         }}
       />
-      <group scale={FIGURE_SCALE}>
-        {/* Its own boundary: a loading figure must not take the others down. */}
-        <Suspense fallback={null}>
-          <Chibi morph={v.morph} equipped={v.equipped} />
-        </Suspense>
+      <group ref={pose}>
+        <group scale={FIGURE_SCALE}>
+          {/* Its own boundary: a loading figure must not take the others down. */}
+          <Suspense fallback={null}>
+            <Chibi morph={v.morph} equipped={v.equipped} />
+          </Suspense>
+        </group>
       </group>
+    </group>
+  );
+}
+
+/** A flat ring on the ground. */
+function Ring({ r, w, opacity, ...props }: { r: number; w: number; opacity: number } & ThreeElements["mesh"]) {
+  return (
+    <mesh rotation-x={-Math.PI / 2} renderOrder={2} {...props}>
+      <ringGeometry args={[r - w, r, 40]} />
+      <meshBasicMaterial color={SKY} transparent opacity={opacity} depthWrite={false} toneMapped={false} />
+    </mesh>
+  );
+}
+
+/**
+ * Where you are walking to: a ripple when you click, then a soft pulsing ring
+ * until you get there (or stop short). `done` fades it out.
+ */
+function WalkMarker({ at, done, onGone }: { at: Vector3; done: boolean; onGone: () => void }) {
+  const ripple = useRef<Mesh>(null);
+  const ring = useRef<Mesh>(null);
+  const age = useRef(0);
+  const fade = useRef(1);
+  useFrame((_, dt) => {
+    age.current += dt;
+    if (done) fade.current -= dt * 4;
+    if (fade.current <= 0) return onGone();
+    const a = age.current;
+    const rp = ripple.current;
+    if (rp) {
+      const k = Math.min(a / 0.5, 1);
+      rp.scale.setScalar(0.4 + k * 1.4);
+      (rp.material as MeshBasicMaterial).opacity = (1 - k) * 0.9 * fade.current;
+    }
+    const rg = ring.current;
+    if (rg) {
+      const pop = Math.min(a / 0.18, 1);
+      rg.scale.setScalar(pop * (1 + Math.sin(a * 6) * 0.08));
+      (rg.material as MeshBasicMaterial).opacity = 0.85 * fade.current;
+    }
+  });
+  return (
+    <group position={[at.x, at.y + 0.004, at.z]}>
+      <Ring ref={ripple} r={0.08} w={0.012} opacity={0.9} />
+      <Ring ref={ring} r={0.045} w={0.016} opacity={0.85} />
+    </group>
+  );
+}
+
+/** While your figure is in hand: a ring on the spot it would land on. */
+function DropMark({ carry }: { carry: RefObject<Carry> }) {
+  const g = useRef<Group>(null);
+  useFrame(({ clock }) => {
+    const p = carry.current?.point;
+    if (!g.current) return;
+    g.current.visible = !!p;
+    if (p) {
+      g.current.position.set(p.x, p.y + 0.004, p.z);
+      g.current.scale.setScalar(1 + Math.sin(clock.elapsedTime * 8) * 0.1);
+    }
+  });
+  return (
+    <group ref={g} visible={false}>
+      <Ring r={0.055} w={0.016} opacity={0.9} />
     </group>
   );
 }
@@ -192,8 +352,10 @@ const LOOK = new Vector3();
 const WANT = new Vector3();
 type Controls = { enabled: boolean; target: Vector3; update: () => void };
 
+// Space belongs to whatever has focus when it's a text field or inside a modal.
 const isTyping = (t: EventTarget | null) =>
-  t instanceof HTMLElement && (t.isContentEditable || t.tagName === "INPUT" || t.tagName === "TEXTAREA");
+  t instanceof HTMLElement &&
+  (t.isContentEditable || t.tagName === "INPUT" || t.tagName === "TEXTAREA" || !!t.closest("[role=dialog]"));
 
 /** While Space is down the camera rides along with you; let go and it returns to where it was. */
 function FollowCam({ anchors, selfKey }: { anchors: Anchors; selfKey: string | null }) {
@@ -275,6 +437,9 @@ function Scene({
   act,
   onMove,
   onTap,
+  onSettle,
+  onDrop,
+  onCarry,
 }: {
   phase: Phase;
   villagers: Villager[];
@@ -283,9 +448,84 @@ function Scene({
   act: Act;
   onMove: (at: [number, number]) => void;
   onTap: () => void;
+  onSettle: (at: [number, number]) => void;
+  onDrop: (at: [number, number]) => void;
+  onCarry: (carrying: boolean) => void;
 }) {
   // Figures wait for the book: they stand where a ray from above lands on it.
   const [foot, setFoot] = useState<Footprint | null>(null);
+  const [marker, setMarker] = useState<{ at: Vector3; id: number; done: boolean } | null>(null);
+  const carry = useRef<Carry>({ point: null, drop: null });
+  const get = useThree((s) => s.get);
+
+  // Hold your own figure to pick it up; move the pointer and let go to drop it.
+  // Moving before the hold completes is a camera drag, not a pick-up.
+  const grab = (e: ThreeEvent<PointerEvent>) => {
+    if (!foot || !selfKey || e.nativeEvent.button !== 0) return;
+    e.stopPropagation();
+    const sx = e.nativeEvent.clientX;
+    const sy = e.nativeEvent.clientY;
+    const early = (ev: PointerEvent) => {
+      if (ev.type !== "pointermove" || Math.hypot(ev.clientX - sx, ev.clientY - sy) > 6) stop();
+    };
+    const stop = () => {
+      clearTimeout(timer);
+      window.removeEventListener("pointermove", early);
+      window.removeEventListener("pointerup", early);
+      window.removeEventListener("pointercancel", early);
+    };
+    const lift = () => {
+      stop();
+      const { camera, gl, controls } = get();
+      const orbit = controls as unknown as Controls | null;
+      if (orbit) orbit.enabled = false;
+      const a = anchors.get(selfKey);
+      const start = a ? a.getWorldPosition(new Vector3()) : new Vector3();
+      start.y -= FIGURE_SCALE * 1.02;
+      carry.current.point = start;
+      setMarker(null);
+      onCarry(true);
+      const move = (ev: PointerEvent) => {
+        const p = dropPointAt(foot, camera, gl.domElement, ev.clientX, ev.clientY, carry.current.point?.y ?? start.y);
+        if (p) carry.current.point = p;
+      };
+      const drop = () => {
+        window.removeEventListener("pointermove", move);
+        window.removeEventListener("pointerup", drop);
+        window.removeEventListener("pointercancel", drop);
+        const p = carry.current.point ?? start;
+        const at = toFrac(foot, p);
+        carry.current.point = null;
+        carry.current.drop = at;
+        if (orbit) orbit.enabled = true;
+        onCarry(false);
+        onDrop(at);
+      };
+      window.addEventListener("pointermove", move);
+      window.addEventListener("pointerup", drop);
+      window.addEventListener("pointercancel", drop);
+    };
+    const timer = window.setTimeout(lift, HOLD_MS);
+    window.addEventListener("pointermove", early);
+    window.addEventListener("pointerup", early);
+    window.addEventListener("pointercancel", early);
+  };
+
+  const own: Own = {
+    held: () => carry.current.point,
+    takeDrop: () => {
+      const d = carry.current.drop;
+      carry.current.drop = null;
+      return d;
+    },
+    grab,
+    hover: act.hover,
+    onSettle: (at) => {
+      setMarker((m) => m && { ...m, done: true });
+      onSettle(at);
+    },
+  };
+
   return (
     <>
       <Daylight phase={phase} />
@@ -294,14 +534,23 @@ function Scene({
         onTap={onTap}
         onPick={(p) => {
           if (!foot) return;
-          const { min, max } = foot.box;
-          onMove([(p.x - min.x) / (max.x - min.x), (p.z - min.z) / (max.z - min.z)]);
+          setMarker({ at: p, id: Date.now(), done: false });
+          onMove(toFrac(foot, p));
         }}
       />
       {foot &&
         villagers.map((v) => (
-          <Figure key={v.key} v={v} foot={foot} anchors={anchors} act={v.key === selfKey ? undefined : act} />
+          <Figure
+            key={v.key}
+            v={v}
+            foot={foot}
+            anchors={anchors}
+            act={v.key === selfKey ? undefined : act}
+            own={v.key === selfKey ? own : undefined}
+          />
         ))}
+      {marker && <WalkMarker key={marker.id} at={marker.at} done={marker.done} onGone={() => setMarker(null)} />}
+      <DropMark carry={carry} />
     </>
   );
 }
@@ -338,6 +587,8 @@ export default function BookVillage({
   selfKey,
   bubbles,
   onMove,
+  onSettle,
+  onDrop,
   onOpen,
   onMention,
   onApproach,
@@ -346,8 +597,13 @@ export default function BookVillage({
   villagers: Villager[];
   selfKey: string | null;
   bubbles: Record<string, Bubble>;
+  /** Walk to a spot (right click). */
   onMove: (at: [number, number]) => void;
-  onOpen: (handle: string) => void;
+  /** Your figure stopped somewhere other than asked (a wall, the edge). */
+  onSettle: (at: [number, number]) => void;
+  /** Your figure was picked up and dropped here. */
+  onDrop: (at: [number, number]) => void;
+  onOpen: (v: Villager) => void;
   onMention: (v: Villager) => void;
   onApproach: (v: Villager) => void;
 }) {
@@ -357,6 +613,8 @@ export default function BookVillage({
   const box = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState<string | null>(null);
   const [menu, setMenu] = useState<Menu | null>(null);
+  const [carrying, setCarrying] = useState(false);
+  const cursor = carrying ? "grabbing" : hover && hover === selfKey ? "grab" : hover ? "pointer" : undefined;
 
   const act = useMemo<Act>(
     () => ({
@@ -396,7 +654,7 @@ export default function BookVillage({
     <div
       ref={box}
       className={x.sky}
-      style={{ background: `linear-gradient(${p.sky[0]}, ${p.sky[1]})`, cursor: hover ? "pointer" : undefined }}
+      style={{ background: `linear-gradient(${p.sky[0]}, ${p.sky[1]})`, cursor }}
       onContextMenu={(e) => e.preventDefault()}
       onPointerDown={(e) => {
         // Any press outside the menu closes it.
@@ -413,6 +671,9 @@ export default function BookVillage({
             act={act}
             onMove={onMove}
             onTap={() => setMenu(null)}
+            onSettle={onSettle}
+            onDrop={onDrop}
+            onCarry={setCarrying}
           />
         </Suspense>
         <LabelTracker
@@ -487,7 +748,7 @@ export default function BookVillage({
           <button type="button" role="menuitem" onClick={() => choose(onApproach)}>
             옆으로 가기
           </button>
-          <button type="button" role="menuitem" onClick={() => choose((v) => onOpen(v.handle))}>
+          <button type="button" role="menuitem" onClick={() => choose(onOpen)}>
             프로필 보기
           </button>
         </div>

@@ -22,8 +22,11 @@ export type Villager = {
   equipped: Record<EquipSlotKey, boolean>;
   /** Where they stand, as fractions of the book's footprint (x, z). */
   at: [number, number];
+  /** Counts pick-up-and-drops: a change means "appear at `at`", not "walk there". */
+  warp?: number;
 };
-export type Look = Omit<Villager, "key" | "at">;
+export type Look = Omit<Villager, "key" | "at" | "warp">;
+type Spot = { at: [number, number]; warp: number };
 export type Bubble = { text: string; id: number };
 
 export const SAY_MAX = 60;
@@ -47,18 +50,21 @@ let leaving: Promise<unknown> = Promise.resolve();
 /** Somewhere along the village's main lane, so newcomers land near each other. */
 const spawn = (): [number, number] => [0.4 + Math.random() * 0.2, 0.55 + Math.random() * 0.15];
 
-export function useVillage(look: Look | null) {
+/** `onHeard(key, text)` runs for every bubble someone else says. */
+export function useVillage(look: Look | null, onHeard?: (key: string, text: string) => void) {
   const key = useMemo(() => crypto.randomUUID(), []);
   const [others, setOthers] = useState<Villager[]>([]);
-  const [at, setAt] = useState<[number, number]>(spawn);
+  const [spot, setSpot] = useState<Spot>(() => ({ at: spawn(), warp: 0 }));
   const [bubbles, setBubbles] = useState<Record<string, Bubble>>({});
   const [status, setStatus] = useState<"joining" | "here" | "error">("joining");
   const channel = useRef<RealtimeChannel | null>(null);
-  const me = useRef<{ look: Look | null; at: [number, number] }>({ look, at });
+  const me = useRef<{ look: Look | null; spot: Spot }>({ look, spot });
+  const heard = useRef(onHeard);
 
   useEffect(() => {
-    me.current = { look, at };
-  }, [look, at]);
+    me.current = { look, spot };
+    heard.current = onHeard;
+  }, [look, spot, onHeard]);
 
   const pop = useCallback((who: string, text: string) => {
     const id = Date.now() + Math.random();
@@ -91,14 +97,17 @@ export function useVillage(look: Look | null) {
           setOthers([...byHandle.values()]);
         })
           .on("broadcast", { event: "say" }, ({ payload }) => {
-            if (typeof payload?.key === "string" && typeof payload?.text === "string") pop(payload.key, payload.text.slice(0, SAY_MAX));
+            if (typeof payload?.key !== "string" || typeof payload?.text !== "string") return;
+            const text = payload.text.slice(0, SAY_MAX);
+            pop(payload.key, text);
+            heard.current?.(payload.key, text);
           })
           .subscribe((s) => {
             if (gone) return;
             if (s === "SUBSCRIBED") {
               setStatus("here");
-              const { look: l, at: a } = me.current;
-              if (l) c.track({ ...l, at: a });
+              const { look: l, spot: s } = me.current;
+              if (l) c.track({ ...l, ...s });
             } else if (s === "CHANNEL_ERROR" || s === "TIMED_OUT") setStatus("error");
           });
       });
@@ -111,14 +120,20 @@ export function useVillage(look: Look | null) {
 
   // A changed look (the profile was edited) shows up for everyone.
   useEffect(() => {
-    if (status === "here" && look) channel.current?.track({ ...look, at: me.current.at });
+    if (status === "here" && look) channel.current?.track({ ...look, ...me.current.spot });
   }, [look, status]);
 
-  const moveTo = useCallback((to: [number, number]) => {
-    setAt(to);
+  const place = useCallback((s: Spot) => {
+    setSpot(s);
+    me.current.spot = s;
     const l = me.current.look;
-    if (l) channel.current?.track({ ...l, at: to });
+    if (l) channel.current?.track({ ...l, ...s });
   }, []);
+
+  /** Walk there. */
+  const moveTo = useCallback((to: [number, number]) => place({ at: to, warp: me.current.spot.warp }), [place]);
+  /** Picked up and dropped: appear there without walking. */
+  const dropAt = useCallback((to: [number, number]) => place({ at: to, warp: me.current.spot.warp + 1 }), [place]);
 
   const say = useCallback(
     (raw: string) => {
@@ -130,6 +145,6 @@ export function useVillage(look: Look | null) {
     [key, pop],
   );
 
-  const self: Villager | null = look ? { ...look, key, at } : null;
-  return { self, others, bubbles, status, moveTo, say };
+  const self: Villager | null = look ? { ...look, key, ...spot } : null;
+  return { self, others, bubbles, status, moveTo, dropAt, say };
 }
