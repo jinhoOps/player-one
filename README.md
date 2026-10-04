@@ -28,6 +28,7 @@
 | `/me` | 내 캐릭터 시트, 인라인 편집 |
 | `/p?u=<handle>` | 공개 프로필 (클라이언트 fetch) |
 | `/settings` | 공개 범위 일괄 관리 |
+| `/privacy` | 개인정보처리방침 |
 
 ## 문서
 
@@ -66,7 +67,8 @@ npm run build                # 정적 export → out/
 - Auth → URL Configuration: Site URL `https://jinhoops.github.io/player-one/`, Redirect URL `https://jinhoops.github.io/player-one/auth/callback` · `http://localhost:3000/auth/callback`.
 - Auth → Providers → Google: Google Cloud OAuth 클라이언트(웹)의 ID/Secret. Google 측 승인된 리디렉션 URI는 `https://<ref>.supabase.co/auth/v1/callback`.
 - Security Advisor가 `get_public_profile`을 "anon이 실행 가능한 SECURITY DEFINER"로 경고한다. 공개 프로필 조회용으로 의도된 것이다.
-- Google OAuth 동의 화면은 "테스트 중" 상태라 등록된 테스트 사용자만 로그인할 수 있다.
+- Google OAuth 동의 화면은 프로덕션 게시 상태다. 기본 범위만 써서 인증 심사는 없다. 브랜딩의 홈페이지·개인정보처리방침(`/privacy`) 링크와 승인된 도메인(`jinhoops.github.io`)이 게시 요건이다.
+- `items`·마을 Realtime 마이그레이션은 SQL Editor로 적용해서 원격 마이그레이션 기록에 없다. 다음 `db:push` 전에 `npx supabase migration repair --status applied 20261003030000 20261003040000`.
 
 ## 상태
 
