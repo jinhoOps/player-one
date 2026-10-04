@@ -68,3 +68,9 @@
   color: var(--text-dim);
   line-height: 1.6;
 }
+
+.footer {
+  font-size: 13px;
+  color: var(--text-dim);
+  text-align: center;
+}
