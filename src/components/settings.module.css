@@ -1,0 +1,97 @@
+/* SettingsModal: sections divided by dashed lines; the danger zone sits apart at the end. */
+.sections {
+  display: grid;
+  gap: calc(var(--space) * 5);
+}
+.sections > section + section {
+  padding-top: calc(var(--space) * 5);
+  border-top: 1px dashed var(--line);
+}
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(var(--space) * 3);
+  margin-bottom: calc(var(--space) * 2);
+}
+.head h3 {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 400;
+}
+.head :global(.btn) {
+  padding: calc(var(--space) * 2) calc(var(--space) * 4);
+  font-size: 13px;
+}
+
+.grid {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
+  column-gap: calc(var(--space) * 6);
+}
+.grid li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(var(--space) * 2);
+  padding: var(--space) 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 14px;
+}
+.state {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--space) * 2);
+}
+
+/* Danger zone: the one place --danger shows up (docs/BRAND.md §3). */
+.sections > section.danger {
+  padding: calc(var(--space) * 4);
+  border: 1.5px solid var(--danger-line);
+  border-radius: var(--radius-md);
+  background: var(--danger-soft);
+}
+.danger h3 {
+  color: var(--danger);
+}
+.note {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-dim);
+}
+.dangerButton {
+  background: var(--danger);
+  box-shadow: 0 3px 0 var(--danger-edge);
+}
+.dangerButton:hover {
+  background: var(--danger);
+  filter: brightness(1.06);
+}
+.dangerButton:active {
+  box-shadow: 0 1px 0 var(--danger-edge);
+}
+.confirm {
+  display: grid;
+  gap: calc(var(--space) * 3);
+  margin-top: calc(var(--space) * 3);
+}
+.confirm label {
+  display: grid;
+  gap: calc(var(--space) * 1.5);
+}
+.confirm input {
+  width: 100%;
+  min-height: 36px;
+  padding: var(--space) calc(var(--space) * 3);
+  background: var(--surface);
+}
+.error {
+  font-size: 12px;
+  color: var(--danger);
+}
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: calc(var(--space) * 2);
+}
