@@ -15,6 +15,7 @@ import {
   type Side,
 } from "three";
 import { clone } from "three/examples/jsm/utils/SkeletonUtils.js";
+import { BASE_PATH } from "./basePath";
 import type { EquipSlotKey, HairStyle } from "./game";
 import type { BodyMorph } from "./morph";
 
@@ -25,7 +26,7 @@ import type { BodyMorph } from "./morph";
 // color, an empty one a plain basic garment. Sky blue marks events: the
 // hovered slot's rim and the equip flash.
 
-export const CHIBI_URL = "/models/chibi/scene.gltf";
+export const CHIBI_URL = `${BASE_PATH}/models/chibi/scene.gltf`;
 
 export const PALETTE = {
   skin: "#f3d5bf",

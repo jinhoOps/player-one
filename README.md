@@ -49,6 +49,10 @@ npm run dev                  # http://localhost:3000
 npm run build                # 정적 export → out/
 ```
 
+### 배포
+
+`main`에 푸시하면 `.github/workflows/deploy.yml`이 GitHub Pages(https://jinhoops.github.io/player-one/)로 배포한다. 빌드는 `NEXT_PUBLIC_BASE_PATH=/player-one`으로 하위 경로를 붙이고, Supabase URL·publishable key는 저장소 Variables에서 읽는다.
+
 | 경로 | 내용 |
 |---|---|
 | `src/app/` | 페이지 (`/`, `/auth/callback`, `/me`, `/me/items`, `/p`, `/village`, `/settings`) |
@@ -59,7 +63,7 @@ npm run build                # 정적 export → out/
 ### Supabase
 
 - 마이그레이션은 `supabase/migrations/`에 둔다. 원격 반영: `npx supabase link --project-ref <ref>` 후 `npm run db:push`.
-- Auth → URL Configuration: Site URL `http://localhost:3000`, Redirect URL `http://localhost:3000/auth/callback`. 배포 도메인이 생기면 둘 다 추가.
+- Auth → URL Configuration: Site URL `https://jinhoops.github.io/player-one/`, Redirect URL `https://jinhoops.github.io/player-one/auth/callback` · `http://localhost:3000/auth/callback`.
 - Auth → Providers → Google: Google Cloud OAuth 클라이언트(웹)의 ID/Secret. Google 측 승인된 리디렉션 URI는 `https://<ref>.supabase.co/auth/v1/callback`.
 - Security Advisor가 `get_public_profile`을 "anon이 실행 가능한 SECURITY DEFINER"로 경고한다. 공개 프로필 조회용으로 의도된 것이다.
 - Google OAuth 동의 화면은 "테스트 중" 상태라 등록된 테스트 사용자만 로그인할 수 있다.

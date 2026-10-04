@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { BASE_PATH } from "./basePath";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
@@ -20,7 +21,7 @@ export const supabase = createClient(url, key, {
 export function signInWithGoogle() {
   return supabase.auth.signInWithOAuth({
     provider: "google",
-    options: { redirectTo: `${window.location.origin}/auth/callback` },
+    options: { redirectTo: `${window.location.origin}${BASE_PATH}/auth/callback` },
   });
 }
 
