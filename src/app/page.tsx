@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { LogoMark } from "@/components/Logo";
@@ -57,6 +58,9 @@ export default function Landing() {
           </li>
         ))}
       </ul>
+      <footer className={s.footer}>
+        <Link href="/privacy">개인정보처리방침</Link>
+      </footer>
     </main>
   );
 }
