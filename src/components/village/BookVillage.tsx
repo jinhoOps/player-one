@@ -9,6 +9,7 @@ import { Canvas, useFrame, useThree, type ThreeEvent } from "@react-three/fiber"
 import { OrbitControls, useAnimations, useGLTF } from "@react-three/drei";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Box3, Color, Group, Mesh, Object3D, Raycaster, Vector3 } from "three";
+import { BASE_PATH } from "@/lib/basePath";
 import { TOY_TINT } from "@/lib/chibiRig";
 import { PHASES, type Phase } from "@/lib/daylight";
 import type { Bubble, Villager } from "@/lib/useVillage";
@@ -16,7 +17,7 @@ import { ClassEmblem } from "../ClassEmblem";
 import { Chibi } from "../Chibi";
 import x from "./village.module.css";
 
-export const BOOK_URL = "/models/book/scene.gltf";
+export const BOOK_URL = `${BASE_PATH}/models/book/scene.gltf`;
 const BOOK_WIDTH = 4;
 const FIGURE_SCALE = 0.24;
 const WALK_SPEED = 0.45; // world units per second
