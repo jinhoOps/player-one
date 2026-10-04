@@ -68,7 +68,7 @@ npm run build                # 정적 export → out/
 - Auth → Providers → Google: Google Cloud OAuth 클라이언트(웹)의 ID/Secret. Google 측 승인된 리디렉션 URI는 `https://<ref>.supabase.co/auth/v1/callback`.
 - Security Advisor가 `get_public_profile`을 "anon이 실행 가능한 SECURITY DEFINER"로 경고한다. 공개 프로필 조회용으로 의도된 것이다.
 - Google OAuth 동의 화면은 프로덕션 게시 상태다. 기본 범위만 써서 인증 심사는 없다. 브랜딩의 홈페이지·개인정보처리방침(`/privacy`) 링크와 승인된 도메인(`jinhoops.github.io`)이 게시 요건이다.
-- `items`·마을 Realtime 마이그레이션은 SQL Editor로 적용해서 원격 마이그레이션 기록에 없다. 다음 `db:push` 전에 `npx supabase migration repair --status applied 20261003030000 20261003040000`.
+- 원격 마이그레이션 기록(`supabase_migrations.schema_migrations`)은 `supabase/migrations/`와 맞춰 두었다. SQL Editor로 직접 적용했다면 같은 버전을 기록에도 넣는다.
 
 ## 상태
 

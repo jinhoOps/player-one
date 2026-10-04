@@ -1,6 +1,7 @@
 "use client";
 
 import { Card } from "@/components/Card";
+import { DeleteAccount } from "@/components/DeleteAccount";
 import { TopBar } from "@/components/TopBar";
 import { VisibilityToggle } from "@/components/VisibilityToggle";
 import { VISIBILITY_LABELS } from "@/lib/fields";
@@ -63,6 +64,8 @@ export default function SettingsPage() {
             </button>
           </div>
         </Card>
+        <div style={{ height: 16 }} />
+        <DeleteAccount handle={profile.handle} />
       </main>
     </>
   );

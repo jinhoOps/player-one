@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { signOut } from "@/lib/supabase";
+import { useSession } from "@/lib/useSession";
 import { Logo } from "./Logo";
 import s from "./ui.module.css";
 
@@ -11,6 +12,17 @@ function Nav({ handle }: { handle?: string | null }) {
   const router = useRouter();
   const path = usePathname();
   const viewing = useSearchParams().get("u");
+  const session = useSession();
+  // Someone who isn't signed in (looking at a shared profile) gets a way in instead.
+  if (session === null) {
+    return (
+      <nav className={s.nav}>
+        <Link href="/" className={s.navLink}>
+          나도 시작하기
+        </Link>
+      </nav>
+    );
+  }
   const links = [
     { href: "/me", label: "내 캐릭터", on: path === "/me" },
     { href: "/me/items", label: "인벤토리", on: path === "/me/items" },

@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
-import { fetchMyProfile, updateMyProfile, type Profile, type ProfilePatch } from "./profile";
+import { fetchMyProfile, profileErrorText, updateMyProfile, type Profile, type ProfilePatch } from "./profile";
 import { useSession } from "./useSession";
 
 // Loads the signed-in user's profile; redirects to / when signed out.
@@ -26,7 +26,7 @@ export function useMyProfile() {
         setProfile(await updateMyProfile(userId, patch));
         setError(null);
       } catch (e) {
-        setError((e as Error).message);
+        setError(profileErrorText(e));
         throw e;
       }
     },

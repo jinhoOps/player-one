@@ -26,9 +26,54 @@ export type Profile = {
   shoe_mm: number | null;
   wealth_tier: number | null;
   visibility: Visibility;
+  /** When the nickname was changed, kept by the server (limit_nickname_changes). */
+  nickname_changes: string[];
 };
 
-export type ProfilePatch = Partial<Omit<Profile, "user_id">>;
+export type ProfilePatch = Partial<Omit<Profile, "user_id" | "nickname_changes">>;
+
+// Nickname changes: at most 3 in any 7 days, 3 minutes apart (enforced in the DB).
+export const NICKNAME_WEEKLY = 3;
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+const COOLDOWN_MS = 3 * 60 * 1000;
+
+/** How many nickname changes are left this week, and when the next one opens if none now. */
+export function nicknameQuota(p: Profile, now = Date.now()) {
+  if (!p.nickname) return { left: NICKNAME_WEEKLY, nextAt: null, free: true };
+  const recent = (p.nickname_changes ?? []).map((t) => Date.parse(t)).filter((t) => t > now - WEEK_MS).sort();
+  const left = NICKNAME_WEEKLY - recent.length;
+  const last = recent[recent.length - 1];
+  const nextAt =
+    left <= 0 ? recent[0] + WEEK_MS : last != null && last + COOLDOWN_MS > now ? last + COOLDOWN_MS : null;
+  return { left: Math.max(left, 0), nextAt, free: false };
+}
+
+/** "10. 4. 오후 03:12" — also takes Postgres timestamptz text ("2026-10-04 15:12:00+00"). */
+export function formatWhen(t: string | number | null | undefined) {
+  if (t == null) return "";
+  const d = new Date(typeof t === "string" ? t.replace(" ", "T").replace(/([+-]\d\d)$/, "$1:00") : t);
+  return Number.isNaN(d.getTime())
+    ? ""
+    : d.toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
+/** A save error in words a player can act on. */
+export function profileErrorText(e: unknown) {
+  const err = e as { message?: string; hint?: string; code?: string };
+  const msg = err?.message ?? String(e);
+  if (msg.includes("nickname_cooldown")) return `닉네임은 3분에 한 번 바꿀 수 있어요. ${formatWhen(err.hint)} 이후에 다시 해 봐요`;
+  if (msg.includes("nickname_weekly_limit"))
+    return `닉네임은 일주일에 ${NICKNAME_WEEKLY}번까지 바꿀 수 있어요. ${formatWhen(err.hint)} 이후에 다시 해 봐요`;
+  if (err?.code === "23505" || /duplicate|unique/i.test(msg)) return "이미 누가 쓰고 있는 핸들이에요. 다른 이름으로 해 봐요";
+  if (err?.code === "23514" && /handle/.test(msg)) return "핸들은 영소문자·숫자·_ 3–20자예요";
+  return msg;
+}
+
+/** Remove the signed-in account; profile and items go with it. */
+export async function deleteMyAccount() {
+  const { error } = await supabase.rpc("delete_my_account");
+  if (error) throw error;
+}
 
 // Shape returned by get_public_profile(handle). Absent keys are private or empty.
 export type PublicProfile = {
