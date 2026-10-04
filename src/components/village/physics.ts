@@ -11,11 +11,12 @@ export type Footprint = { book: Group; box: Box3 };
 /** A figure's physical state: feet position and vertical speed. */
 export type Body = { pos: Vector3; vy: number; grounded: boolean };
 
-// World units. A figure stands about 0.1 tall.
-export const STEP_UP = 0.03; // about a third of a figure: curbs, roots, stairs, low fences
+// World units. A figure stands about 0.056 tall.
+export const STEP_UP = 0.022; // a good third of a figure: curbs, roots, stairs, low fences
+const STEP_DOWN = STEP_UP * 1.5; // drops up to this deep are walked down, deeper ones fallen off
 // Walls are felt right at step height: anything lower is stepped over, never a wall.
 const KNEE = STEP_UP;
-const RADIUS = 0.012; // how close a figure gets to a wall
+const RADIUS = 0.008; // how close a figure gets to a wall
 const GRAVITY = 3.2;
 const MAX_FALL = 4;
 const WALL_SLOPE = 0.6; // normal.y below this is a wall (steeper than ~53°), above it ground
@@ -104,6 +105,14 @@ function clear(book: Object3D, pos: Vector3, d: Vector3, step: number) {
 export function settle(book: Object3D, b: Body, dt: number) {
   const floor = floorBelow(book, b.pos.x, b.pos.y + STEP_UP, b.pos.z);
   if (floor === null) return 0;
+  // Walking downhill or down a step keeps the feet on the ground; only a real
+  // ledge (deeper than a step) turns into a fall. Otherwise every downhill
+  // step would leave a figure hanging in the air for a few frames, unable to walk.
+  if (b.grounded && b.pos.y - floor <= STEP_DOWN) {
+    b.pos.y = floor;
+    b.vy = 0;
+    return 0;
+  }
   if (b.pos.y > floor + 1e-3) {
     b.vy = Math.max(b.vy - GRAVITY * dt, -MAX_FALL);
     b.pos.y += b.vy * dt;

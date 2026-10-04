@@ -8,7 +8,7 @@
 
 import { Canvas, useFrame, useThree, type ThreeElements, type ThreeEvent } from "@react-three/fiber";
 import { OrbitControls, useAnimations, useGLTF } from "@react-three/drei";
-import { Suspense, useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { Box3, Color, Group, Mesh, MeshBasicMaterial, Object3D, Vector3 } from "three";
 import { BASE_PATH } from "@/lib/basePath";
 import { TOY_TINT } from "@/lib/chibiRig";
@@ -31,12 +31,12 @@ import x from "./village.module.css";
 
 export const BOOK_URL = `${BASE_PATH}/models/book/scene.gltf`;
 const BOOK_WIDTH = 4;
-const FIGURE_SCALE = 0.12; // a figure stands ~1/40 of the book's width
-const WALK_SPEED = 0.35; // world units per second
-const ARRIVE = 0.004; // close enough to the target
+const FIGURE_SCALE = 0.07; // a figure stands ~1/70 of the book's width
+const WALK_SPEED = 0.3; // world units per second
+const ARRIVE = 0.003; // close enough to the target
 const STUCK_S = 1.5; // no closer to the target for this long: stop there
 const HOLD_MS = 350; // press on your own figure this long to pick it up
-const LIFT = 0.07; // how high a picked-up figure dangles over the drop spot
+const LIFT = 0.045; // how high a picked-up figure dangles over the drop spot
 const SKY = "#4f9bd9"; // --sky: neutral markers (docs/BRAND.md §3)
 
 type Anchors = Map<string, Object3D>;
@@ -161,7 +161,7 @@ function Figure({ v, foot, anchors, act, own }: { v: Villager; foot: Footprint; 
     if (warp !== seenWarp.current) {
       seenWarp.current = warp;
       if (!own) {
-        groundAt(foot, v.at, b.pos).y += 0.2;
+        groundAt(foot, v.at, b.pos).y += 0.15;
         b.vy = 0;
         b.grounded = false;
       }
@@ -202,7 +202,7 @@ function Figure({ v, foot, anchors, act, own }: { v: Villager; foot: Footprint; 
     }
 
     g.position.copy(b.pos);
-    pz.position.y = walking.current ? Math.abs(Math.sin(t * 14)) * 0.006 : 0;
+    pz.position.y = walking.current ? Math.abs(Math.sin(t * 16)) * 0.0035 : 0;
     pz.rotation.x *= 0.8;
     pz.rotation.z *= 0.8;
     const s = squash.current;
@@ -300,8 +300,8 @@ function WalkMarker({ at, done, onGone }: { at: Vector3; done: boolean; onGone: 
   });
   return (
     <group position={[at.x, at.y + 0.004, at.z]}>
-      <Ring ref={ripple} r={0.05} w={0.008} opacity={0.9} />
-      <Ring ref={ring} r={0.028} w={0.01} opacity={0.85} />
+      <Ring ref={ripple} r={0.035} w={0.006} opacity={0.9} />
+      <Ring ref={ring} r={0.02} w={0.007} opacity={0.85} />
     </group>
   );
 }
@@ -320,7 +320,7 @@ function DropMark({ carry }: { carry: RefObject<Carry> }) {
   });
   return (
     <group ref={g} visible={false}>
-      <Ring r={0.035} w={0.01} opacity={0.9} />
+      <Ring r={0.025} w={0.007} opacity={0.9} />
     </group>
   );
 }
@@ -354,7 +354,7 @@ function FitCamera() {
 }
 
 // Space held: a quarter view at a fixed world angle that follows your figure.
-const QUARTER = new Vector3(0.38, 0.44, 0.38);
+const QUARTER = new Vector3(0.24, 0.28, 0.24);
 const LOOK = new Vector3();
 const WANT = new Vector3();
 type Controls = { enabled: boolean; target: Vector3; update: () => void };
@@ -447,6 +447,7 @@ function Scene({
   onSettle,
   onDrop,
   onCarry,
+  registerGrab,
 }: {
   phase: Phase;
   villagers: Villager[];
@@ -458,6 +459,8 @@ function Scene({
   onSettle: (at: [number, number]) => void;
   onDrop: (at: [number, number]) => void;
   onCarry: (carrying: boolean) => void;
+  /** Hands over the pick-up starter, for your name tag to call. */
+  registerGrab: (start: (e: PointerEvent) => void) => void;
 }) {
   // Figures wait for the book: they stand where a ray from above lands on it.
   const [foot, setFoot] = useState<Footprint | null>(null);
@@ -467,11 +470,11 @@ function Scene({
 
   // Hold your own figure to pick it up; move the pointer and let go to drop it.
   // Moving before the hold completes is a camera drag, not a pick-up.
-  const grab = (e: ThreeEvent<PointerEvent>) => {
-    if (!foot || !selfKey || e.nativeEvent.button !== 0) return;
-    e.stopPropagation();
-    const sx = e.nativeEvent.clientX;
-    const sy = e.nativeEvent.clientY;
+  // Takes a native event so your name tag (DOM, outside the canvas) can start it too.
+  const startGrab = (ev0: PointerEvent) => {
+    if (!foot || !selfKey || ev0.button !== 0) return;
+    const sx = ev0.clientX;
+    const sy = ev0.clientY;
     const early = (ev: PointerEvent) => {
       if (ev.type !== "pointermove" || Math.hypot(ev.clientX - sx, ev.clientY - sy) > 6) stop();
     };
@@ -518,6 +521,8 @@ function Scene({
     window.addEventListener("pointercancel", early);
   };
 
+  useEffect(() => registerGrab(startGrab));
+
   const own: Own = {
     held: () => carry.current.point,
     takeDrop: () => {
@@ -525,7 +530,10 @@ function Scene({
       carry.current.drop = null;
       return d;
     },
-    grab,
+    grab: (e) => {
+      e.stopPropagation();
+      startGrab(e.nativeEvent);
+    },
     hover: act.hover,
     onSettle: (at) => {
       setMarker((m) => m && { ...m, done: true });
@@ -621,6 +629,11 @@ export default function BookVillage({
   const [hover, setHover] = useState<string | null>(null);
   const [menu, setMenu] = useState<Menu | null>(null);
   const [carrying, setCarrying] = useState(false);
+  // Your name tag starts a pick-up too: the figure itself is small to hit.
+  const grabRef = useRef<((e: PointerEvent) => void) | null>(null);
+  const registerGrab = useCallback((start: (e: PointerEvent) => void) => {
+    grabRef.current = start;
+  }, []);
   const cursor = carrying ? "grabbing" : hover && hover === selfKey ? "grab" : hover ? "pointer" : undefined;
 
   const act = useMemo<Act>(
@@ -681,6 +694,7 @@ export default function BookVillage({
             onSettle={onSettle}
             onDrop={onDrop}
             onCarry={setCarrying}
+            registerGrab={registerGrab}
           />
         </Suspense>
         <LabelTracker
@@ -719,7 +733,11 @@ export default function BookVillage({
               </p>
             )}
             {v.key === selfKey ? (
-              <span className={`${x.name} ${x.nameSelf}`}>
+              <span
+                className={`${x.name} ${x.nameSelf}`}
+                title="꾹 눌러 옮기기"
+                onPointerDown={(e) => grabRef.current?.(e.nativeEvent)}
+              >
                 {v.classKey && <ClassEmblem classKey={v.classKey} size={16} />}
                 {v.nickname}
               </span>

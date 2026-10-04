@@ -45,8 +45,11 @@ button.name:hover,
   color: var(--leaf);
   box-shadow: 0 0 0 2px var(--sky);
 }
+/* Your own tag: hold it to pick your figure up (the figure is small to hit). */
 .nameSelf {
-  pointer-events: none;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
   background: var(--leaf);
   color: #fff;
   padding-left: 7px;
