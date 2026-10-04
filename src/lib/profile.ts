@@ -14,6 +14,8 @@ export type Profile = {
   job_title: string | null;
   body_type: BodyType | null;
   hair_style: HairStyle | null;
+  /** The helmet stays equipped but the 3D character doesn't wear it. Public, like the hairstyle. */
+  hide_headwear: boolean;
   height_cm: number | null;
   weight_kg: number | null;
   skeletal_muscle_kg: number | null;
@@ -85,6 +87,7 @@ export type PublicProfile = {
   job_title?: string;
   body_type?: BodyType;
   hair_style?: HairStyle;
+  hide_headwear?: boolean;
   height_cm?: number;
   weight_kg?: number;
   skeletal_muscle_kg?: number;
@@ -136,6 +139,7 @@ export function sheetFromOwn(p: Profile): SheetData {
       shoes: { equipped: p.shoe_mm != null, detail: join(p.shoe_mm && `${p.shoe_mm}mm`) },
     },
     wealthTier: p.wealth_tier,
+    hideHeadwear: p.hide_headwear,
     morph: morphFromStats(p),
   };
 }
@@ -159,6 +163,7 @@ export function sheetFromPublic(p: PublicProfile): SheetData {
       shoes: { equipped: e.shoes.equipped, detail: join(e.shoes.shoe_mm && `${e.shoes.shoe_mm}mm`) },
     },
     wealthTier: p.wealth_tier,
+    hideHeadwear: !!p.hide_headwear,
     // Private body fields are absent from the RPC response → neutral defaults.
     morph: morphFromStats(p),
   };

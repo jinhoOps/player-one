@@ -40,7 +40,8 @@ export function lookFromPublic(p: PublicProfile): Look {
     nickname: p.nickname ?? p.handle,
     classKey: p.class_key ?? null,
     morph: morphFromStats(p),
-    equipped: { head: e.head.equipped, top: e.top.equipped, bottom: e.bottom.equipped, shoes: e.shoes.equipped },
+    // A hidden helmet is still equipped, just not worn on the figure.
+    equipped: { head: e.head.equipped && !p.hide_headwear, top: e.top.equipped, bottom: e.bottom.equipped, shoes: e.shoes.equipped },
   };
 }
 

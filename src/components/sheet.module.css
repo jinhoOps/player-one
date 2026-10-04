@@ -42,6 +42,11 @@
   position: relative;
 }
 
+/* Eye + lock side by side in a tile's corner. */
+.tileChips {
+  display: inline-flex;
+  gap: var(--space);
+}
 .tileIcon {
   display: inline-flex;
   color: var(--text-dim);

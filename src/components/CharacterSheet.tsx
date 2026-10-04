@@ -16,6 +16,7 @@ import { SealedValue } from "./SealedValue";
 import { SlotIcon } from "./SlotIcon";
 import { StatRow } from "./StatRow";
 import { TierBadge } from "./TierBadge";
+import { WearToggle } from "./VisibilityToggle";
 import s from "./sheet.module.css";
 
 const CharacterViewport = dynamic(() => import("./CharacterViewport"), { ssr: false });
@@ -35,6 +36,8 @@ export type SheetData = {
   };
   equipment: Record<EquipSlotKey, { equipped: boolean; detail?: string | null }>;
   wealthTier?: number | null;
+  /** The helmet is equipped but not drawn on the character. */
+  hideHeadwear?: boolean;
   morph: BodyMorph;
 };
 
@@ -149,10 +152,10 @@ export function CharacterSheet({
       )}
     </div>
   );
-  const equipped = Object.fromEntries(EQUIP_SLOTS.map((k) => [k, data.equipment[k].equipped])) as Record<
-    EquipSlotKey,
-    boolean
-  >;
+  // What the character wears: a hidden helmet stays equipped but isn't drawn.
+  const equipped = Object.fromEntries(
+    EQUIP_SLOTS.map((k) => [k, data.equipment[k].equipped && !(k === "head" && data.hideHeadwear)]),
+  ) as Record<EquipSlotKey, boolean>;
 
   return (
     <div ref={sheet} className={s.sheet}>
@@ -232,7 +235,18 @@ export function CharacterSheet({
                     <SlotIcon slot={k} size={18} />
                     <span className={s.srOnly}>{SLOT_LABELS[k]}</span>
                   </span>
-                  {trailing?.(k)}
+                  {k === "head" && owner && data.equipment.head.equipped ? (
+                    <span className={s.tileChips}>
+                      <WearToggle
+                        label="투구"
+                        shown={!data.hideHeadwear}
+                        onChange={(shown) => owner.save({ hide_headwear: !shown })}
+                      />
+                      {trailing?.(k)}
+                    </span>
+                  ) : (
+                    trailing?.(k)
+                  )}
                   <span className={`num ${s.tileValue}`}>
                     <SealedValue sealed={sealed[k]}>
                       {data.equipment[k].detail ?? (data.equipment[k].equipped ? "장착" : "—")}
