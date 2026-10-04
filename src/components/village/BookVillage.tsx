@@ -31,11 +31,12 @@ import x from "./village.module.css";
 
 export const BOOK_URL = `${BASE_PATH}/models/book/scene.gltf`;
 const BOOK_WIDTH = 4;
-const FIGURE_SCALE = 0.24;
-const WALK_SPEED = 0.45; // world units per second
+const FIGURE_SCALE = 0.12; // a figure stands ~1/40 of the book's width
+const WALK_SPEED = 0.35; // world units per second
 const ARRIVE = 0.004; // close enough to the target
+const STUCK_S = 1.5; // no closer to the target for this long: stop there
 const HOLD_MS = 350; // press on your own figure this long to pick it up
-const LIFT = 0.12; // how high a picked-up figure dangles over the drop spot
+const LIFT = 0.07; // how high a picked-up figure dangles over the drop spot
 const SKY = "#4f9bd9"; // --sky: neutral markers (docs/BRAND.md §3)
 
 type Anchors = Map<string, Object3D>;
@@ -128,6 +129,8 @@ function Figure({ v, foot, anchors, act, own }: { v: Villager; foot: Footprint; 
   const halted = useRef<string | null>(null);
   const walking = useRef(false);
   const squash = useRef(0);
+  /** Closest we've got to the current target, and since when. */
+  const progress = useRef({ key: "", best: Infinity, since: 0 });
 
   useFrame(({ clock }, rawDt) => {
     const g = body.current;
@@ -158,7 +161,7 @@ function Figure({ v, foot, anchors, act, own }: { v: Villager; foot: Footprint; 
     if (warp !== seenWarp.current) {
       seenWarp.current = warp;
       if (!own) {
-        groundAt(foot, v.at, b.pos).y += 0.35;
+        groundAt(foot, v.at, b.pos).y += 0.2;
         b.vy = 0;
         b.grounded = false;
       }
@@ -178,6 +181,10 @@ function Figure({ v, foot, anchors, act, own }: { v: Villager; foot: Footprint; 
     if (dist > ARRIVE && b.grounded && halted.current !== key) {
       DIR.set(dx / dist, 0, dz / dist);
       moved = walkStep(book, b.pos, DIR, Math.min(dist, WALK_SPEED * dt));
+      // Veering around things can circle without getting closer: give up after a while.
+      const prog = progress.current;
+      if (prog.key !== key || dist < prog.best - 0.01) progress.current = { key, best: dist, since: t };
+      else if (t - prog.since > STUCK_S) moved = false;
       if (moved) {
         walking.current = true;
         g.rotation.y = Math.atan2(DIR.x, DIR.z);
@@ -195,7 +202,7 @@ function Figure({ v, foot, anchors, act, own }: { v: Villager; foot: Footprint; 
     }
 
     g.position.copy(b.pos);
-    pz.position.y = walking.current ? Math.abs(Math.sin(t * 14)) * 0.012 : 0;
+    pz.position.y = walking.current ? Math.abs(Math.sin(t * 14)) * 0.006 : 0;
     pz.rotation.x *= 0.8;
     pz.rotation.z *= 0.8;
     const s = squash.current;
@@ -293,8 +300,8 @@ function WalkMarker({ at, done, onGone }: { at: Vector3; done: boolean; onGone: 
   });
   return (
     <group position={[at.x, at.y + 0.004, at.z]}>
-      <Ring ref={ripple} r={0.08} w={0.012} opacity={0.9} />
-      <Ring ref={ring} r={0.045} w={0.016} opacity={0.85} />
+      <Ring ref={ripple} r={0.05} w={0.008} opacity={0.9} />
+      <Ring ref={ring} r={0.028} w={0.01} opacity={0.85} />
     </group>
   );
 }
@@ -313,7 +320,7 @@ function DropMark({ carry }: { carry: RefObject<Carry> }) {
   });
   return (
     <group ref={g} visible={false}>
-      <Ring r={0.055} w={0.016} opacity={0.9} />
+      <Ring r={0.035} w={0.01} opacity={0.9} />
     </group>
   );
 }
@@ -347,7 +354,7 @@ function FitCamera() {
 }
 
 // Space held: a quarter view at a fixed world angle that follows your figure.
-const QUARTER = new Vector3(0.7, 0.8, 0.7);
+const QUARTER = new Vector3(0.38, 0.44, 0.38);
 const LOOK = new Vector3();
 const WANT = new Vector3();
 type Controls = { enabled: boolean; target: Vector3; update: () => void };

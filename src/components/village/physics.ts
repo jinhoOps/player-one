@@ -1,6 +1,6 @@
 // Just enough physics to walk on the book (docs/DESIGN.md §9): feet follow the
-// ground, small rises are stepped up, walls stop you (or you slide along
-// them), and anything in the air falls. Rays run against a BVH of the map so a
+// ground, small rises are stepped up, walls are slid along or veered around
+// (and stop you only when there's no way past), and anything in the air falls. Rays run against a BVH of the map so a
 // few per figure per frame stay cheap on ~55k faces.
 
 import { Box3, Plane, Raycaster, Vector2, Vector3, type Camera, type Group, type Mesh, type Object3D } from "three";
@@ -11,13 +11,14 @@ export type Footprint = { book: Group; box: Box3 };
 /** A figure's physical state: feet position and vertical speed. */
 export type Body = { pos: Vector3; vy: number; grounded: boolean };
 
-// World units. A figure stands about 0.19 tall.
-export const STEP_UP = 0.035; // a curb, a stair: stepped over without a jump
-const KNEE = 0.025; // walls are felt at this height
-const RADIUS = 0.03; // how close a figure gets to a wall
+// World units. A figure stands about 0.1 tall.
+export const STEP_UP = 0.03; // about a third of a figure: curbs, roots, stairs, low fences
+// Walls are felt right at step height: anything lower is stepped over, never a wall.
+const KNEE = STEP_UP;
+const RADIUS = 0.012; // how close a figure gets to a wall
 const GRAVITY = 3.2;
 const MAX_FALL = 4;
-const WALL_SLOPE = 0.75; // normal.y below this is a wall, above it ground
+const WALL_SLOPE = 0.6; // normal.y below this is a wall (steeper than ~53°), above it ground
 
 /** Give every map mesh a BVH. The GLTF cache shares geometry, so this runs once per mesh. */
 export function accelerate(root: Object3D) {
@@ -64,22 +65,39 @@ function wallAhead(book: Object3D, pos: Vector3, dir: Vector3, reach: number) {
  * wall met at an angle, refuse to walk off the book. Returns false when stuck.
  */
 export function walkStep(book: Object3D, pos: Vector3, dir: Vector3, step: number) {
+  // Straight ahead, else along the wall, else veer around it (trees, posts, corners).
   D.copy(dir);
-  const wall = wallAhead(book, pos, D, step);
-  if (wall) {
-    S.copy(D).addScaledVector(wall, -D.dot(wall));
-    S.y = 0;
-    if (S.length() < 0.3) return false; // head-on
-    D.copy(S.normalize());
-    if (wallAhead(book, pos, D, step)) return false; // a corner
+  let ok = clear(book, pos, D, step);
+  if (!ok) {
+    const wall = wallAhead(book, pos, D, step);
+    if (wall) {
+      S.copy(D).addScaledVector(wall, -D.dot(wall));
+      S.y = 0;
+      if (S.length() > 0.2) {
+        D.copy(S.normalize());
+        ok = clear(book, pos, D, step);
+      }
+    }
   }
-  const nx = pos.x + D.x * step;
-  const nz = pos.z + D.z * step;
-  if (floorBelow(book, nx, pos.y + STEP_UP, nz) === null) return false; // the edge of the book
-  pos.x = nx;
-  pos.z = nz;
+  for (const turn of VEER) {
+    if (ok) break;
+    D.copy(dir).applyAxisAngle(UP, turn);
+    ok = clear(book, pos, D, step);
+  }
+  if (!ok) return false;
+  pos.x += D.x * step;
+  pos.z += D.z * step;
   dir.copy(D);
   return true;
+}
+
+// Left and right of the way, a little then a lot (radians).
+const VEER = [0.5, -0.5, 1.0, -1.0, 1.45, -1.45];
+
+/** No wall ahead and ground under the next step (not the edge of the book). */
+function clear(book: Object3D, pos: Vector3, d: Vector3, step: number) {
+  if (wallAhead(book, pos, d, step)) return false;
+  return floorBelow(book, pos.x + d.x * step, pos.y + STEP_UP, pos.z + d.z * step) !== null;
 }
 
 /** Stand on the ground, step up small rises, or fall. Returns the landing speed (0 if none). */
