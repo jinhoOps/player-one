@@ -3,13 +3,13 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { TopBar } from "@/components/TopBar";
 import x from "@/components/village/village.module.css";
 import { kstPhase, PHASES, type Phase } from "@/lib/daylight";
 import { fetchPublicProfile } from "@/lib/profile";
 import { useMyProfile } from "@/lib/useMyProfile";
-import { lookFromPublic, SAY_MAX, useVillage, type Look } from "@/lib/useVillage";
+import { lookFromPublic, SAY_MAX, useVillage, type Look, type Villager } from "@/lib/useVillage";
 
 const BookVillage = dynamic(() => import("@/components/village/BookVillage"), { ssr: false });
 
@@ -32,6 +32,23 @@ export default function VillagePage() {
     const id = setInterval(() => setPhase(kstPhase()), 60_000);
     return () => clearInterval(id);
   }, []);
+
+  // Left click on someone: their @name goes into what you are about to say.
+  const input = useRef<HTMLInputElement>(null);
+  const mention = useCallback((v: Villager) => {
+    const tag = `@${v.nickname}`;
+    setDraft((d) => (d.includes(tag) ? d : `${d.trimEnd()} ${tag} `.trimStart()));
+    input.current?.focus();
+  }, []);
+
+  // "옆으로 가기": walk to just beside them.
+  const approach = useCallback(
+    (v: Villager) => {
+      const clamp = (n: number) => Math.min(Math.max(n, 0.02), 0.98);
+      moveTo([clamp(v.at[0] + 0.03), clamp(v.at[1] + 0.02)]);
+    },
+    [moveTo],
+  );
 
   function send(e: FormEvent) {
     e.preventDefault();
@@ -67,6 +84,8 @@ export default function VillagePage() {
               bubbles={bubbles}
               onMove={moveTo}
               onOpen={(h) => router.push(`/p?u=${h}`)}
+              onMention={mention}
+              onApproach={approach}
             />
             <div className={x.hud}>
               <span className={x.pill}>{PHASES[phase].label}</span>
@@ -74,9 +93,10 @@ export default function VillagePage() {
                 {status === "joining" ? "들어가는 중…" : status === "error" ? "연결이 끊겼어요" : `${others.length + 1}명 접속 중`}
               </span>
             </div>
-            <p className={x.hint}>땅을 누르면 걸어가요 · 이름을 누르면 프로필</p>
+            <p className={x.hint}>우클릭 이동 · 사람 클릭 @멘션 · 사람 우클릭 메뉴 · Space 꾹 내 시점</p>
             <form className={x.chat} onSubmit={send}>
               <input
+                ref={input}
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 maxLength={SAY_MAX}

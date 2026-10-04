@@ -39,9 +39,11 @@
   color: var(--text);
   box-shadow: 0 1px 0 var(--line-strong);
 }
-button.name:hover {
+button.name:hover,
+.nameHot {
   background: var(--leaf-soft);
   color: var(--leaf);
+  box-shadow: 0 0 0 2px var(--sky);
 }
 .nameSelf {
   pointer-events: none;
@@ -76,6 +78,54 @@ button.name:hover {
   height: 10px;
   background: #fff;
   transform: translateX(-50%) rotate(45deg);
+}
+.mention {
+  font-weight: 700;
+  color: var(--sky);
+}
+/* Someone called you: the name gets a sun highlight. */
+.mentionMe {
+  padding: 0 3px;
+  border-radius: 4px;
+  background: var(--sun);
+  color: var(--text);
+}
+
+/* Right click on a villager: a small menu at the cursor. */
+.menu {
+  position: absolute;
+  z-index: 2;
+  display: grid;
+  padding: 6px;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--lift-hover);
+  animation: bubbleIn 160ms ease-out;
+}
+.menuHead {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px 6px;
+  margin-bottom: 2px;
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.menu button {
+  padding: 7px 8px;
+  border-radius: var(--radius-sm);
+  text-align: left;
+  font-size: 13px;
+}
+.menu button:hover,
+.menu button:focus-visible {
+  background: var(--leaf-soft);
+  color: var(--leaf);
+  outline: none;
 }
 @keyframes bubbleIn {
   from { opacity: 0; transform: translateY(4px) scale(0.9); }
