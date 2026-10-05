@@ -81,10 +81,15 @@
   to { opacity: 0; transform: translateY(-14px) scale(1); }
 }
 
-/* Sealing: the value squishes (useSeal) as it turns private. The owner still
-   reads it; the lock icon beside it is what marks it private. */
+/* Sealing: the value squishes (useSeal); on a visitor's view it is frosted over. */
 .sealable {
   display: inline-block;
+  transition: filter 240ms, opacity 240ms;
+}
+.sealed {
+  filter: blur(5px);
+  opacity: 0.55;
+  transition: filter 240ms 300ms, opacity 240ms 300ms;
 }
 
 /* StatRow value: highlights when its tile is hovered (owner view) */

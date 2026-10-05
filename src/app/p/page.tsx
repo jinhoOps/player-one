@@ -3,6 +3,7 @@
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { CharacterSheet } from "@/components/CharacterSheet";
+import { FIELD_VISIBILITY } from "@/lib/fields";
 import { TopBar } from "@/components/TopBar";
 import { TrophyShelf } from "@/components/TrophyShelf";
 import { fetchPublicTrophies, type Trophy } from "@/lib/items";
@@ -39,9 +40,11 @@ function PublicProfileView() {
   if (state?.handle !== handle) return msg("캐릭터 불러오는 중…");
   if (state.error) return msg(state.error);
   if (!state.profile) return msg(`"${handle}" 플레이어를 찾을 수 없어요`);
+  const hidden = new Set(state.profile.sealed ?? []);
   return (
     <CharacterSheet
       data={sheetFromPublic(state.profile)}
+      sealed={Object.fromEntries(Object.entries(FIELD_VISIBILITY).map(([f, v]) => [f, hidden.has(v)]))}
       footer={<TrophyShelf trophies={state.trophies ?? []} />}
     />
   );

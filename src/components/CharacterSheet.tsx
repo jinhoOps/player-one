@@ -71,7 +71,7 @@ export function CharacterSheet({
   data: SheetData;
   /** Owner view: edit stats in place and equipment through slot popovers. */
   owner?: { profile: Profile; save: (patch: ProfilePatch) => Promise<void> };
-  /** Owner view: fields that are private (they squish when sealed; the value stays readable). */
+  /** Private fields. Owner: they stay readable (the lock chip marks them). Visitor: frosted over. */
   sealed?: Partial<Record<string, boolean>>;
   /** Owner view: per-field slot for a VisibilityToggle. */
   trailing?: (field: string) => ReactNode;
@@ -216,6 +216,7 @@ export function CharacterSheet({
                   value={data.stats[r.key]}
                   range={r.range}
                   sealed={sealed[r.key]}
+                  frost={!owner}
                   trailing={trailing?.(r.key)}
                   onEdit={owner ? () => setEdit({ panel: "stats", focus: r.key }) : undefined}
                 />
@@ -250,7 +251,7 @@ export function CharacterSheet({
                     trailing?.(k)
                   )}
                   <span className={`num ${s.tileValue}`}>
-                    <SealedValue sealed={sealed[k]}>
+                    <SealedValue sealed={sealed[k]} frost={!owner}>
                       {data.equipment[k].detail ?? (data.equipment[k].equipped ? "장착" : "—")}
                     </SealedValue>
                   </span>
@@ -272,7 +273,7 @@ export function CharacterSheet({
                 {trailing?.("class")}
                 <span className={`${s.tileValue} ${s.classValue}`}>
                   {data.classKey && <ClassEmblem classKey={data.classKey} size={22} />}
-                  <SealedValue sealed={sealed.class}>{cls ? cls.name : "—"}</SealedValue>
+                  <SealedValue sealed={sealed.class} frost={!owner}>{cls ? cls.name : "—"}</SealedValue>
                 </span>
               </div>
               {data.jobTitle !== undefined && (
@@ -280,7 +281,7 @@ export function CharacterSheet({
                   <span className="label">직업</span>
                   {trailing?.("job_title")}
                   <span className={s.tileValue}>
-                    <SealedValue sealed={sealed.job_title}>{data.jobTitle || "—"}</SealedValue>
+                    <SealedValue sealed={sealed.job_title} frost={!owner}>{data.jobTitle || "—"}</SealedValue>
                   </span>
                 </div>
               )}
@@ -288,7 +289,7 @@ export function CharacterSheet({
                 <span className="label">자산 티어</span>
                 {trailing?.("wealth")}
                 <span className={s.tileValue}>
-                  <SealedValue sealed={sealed.wealth}>
+                  <SealedValue sealed={sealed.wealth} frost={!owner}>
                     {data.wealthTier != null ? <TierBadge tier={data.wealthTier} /> : "—"}
                   </SealedValue>
                 </span>

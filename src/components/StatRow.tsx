@@ -13,13 +13,15 @@ type Props = {
   /** Gauge range; omit to hide the bar. */
   range?: [number, number];
   sealed?: boolean;
+  /** Visitor view: a sealed value is frosted over (the owner keeps reading it). */
+  frost?: boolean;
   trailing?: ReactNode;
   /** Owner view: clicking the tile opens the stats form on this field. */
   onEdit?: () => void;
 };
 
 // Delta color is always neutral (sky): a weight gain may be someone's goal.
-export function StatRow({ label, value, unit, digits = 1, range, sealed, trailing, onEdit }: Props) {
+export function StatRow({ label, value, unit, digits = 1, range, sealed, frost, trailing, onEdit }: Props) {
   const ref = useRef<HTMLSpanElement>(null);
   const prev = useRef(value);
   const [delta, setDelta] = useState<{ v: number; id: number } | null>(null);
@@ -35,7 +37,10 @@ export function StatRow({ label, value, unit, digits = 1, range, sealed, trailin
   }, [value, digits]);
 
   const ratio = range && value != null ? Math.min(1, Math.max(0, (value - range[0]) / (range[1] - range[0]))) : 0;
-  const shown = <span ref={ref}>{value != null ? value.toFixed(digits) : "—"}</span>;
+  const hidden = sealed && frost;
+  // A visitor never receives the private value; a stand-in of the same shape is blurred instead.
+  const text = hidden ? (0).toFixed(digits).padStart(digits + 3, "0") : value != null ? value.toFixed(digits) : "—";
+  const shown = <span ref={ref}>{text}</span>;
 
   return (
     <div
@@ -45,7 +50,7 @@ export function StatRow({ label, value, unit, digits = 1, range, sealed, trailin
     >
       <span className="label">{label}</span>
       <span className={s.statTrail}>{trailing}</span>
-      <span className={`num ${s.statValue} ${s.sealable}`}>
+      <span className={`num ${s.statValue} ${s.sealable} ${hidden ? s.sealed : ""}`}>
         {onEdit ? (
           <button type="button" className={s.editable} aria-label={`${label} 편집`}>
             {shown}
