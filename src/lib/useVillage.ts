@@ -31,6 +31,7 @@ export type Bubble = { text: string; id: number };
 
 export const SAY_MAX = 60;
 const SAY_MS = 6000;
+const RETRY_MS = 3000;
 
 /** A villager's look from what get_public_profile returned: public fields only. */
 export function lookFromPublic(p: PublicProfile): Look {
@@ -58,6 +59,8 @@ export function useVillage(look: Look | null, onHeard?: (key: string, text: stri
   const [spot, setSpot] = useState<Spot>(() => ({ at: spawn(), warp: 0 }));
   const [bubbles, setBubbles] = useState<Record<string, Bubble>>({});
   const [status, setStatus] = useState<"joining" | "here" | "error">("joining");
+  /** Bumped to rejoin the channel after it drops. */
+  const [attempt, setAttempt] = useState(0);
   const channel = useRef<RealtimeChannel | null>(null);
   const me = useRef<{ look: Look | null; spot: Spot }>({ look, spot });
   const heard = useRef(onHeard);
@@ -78,6 +81,7 @@ export function useVillage(look: Look | null, onHeard?: (key: string, text: stri
     if (!handle) return;
     let gone = false;
     let ch: RealtimeChannel | null = null;
+    let retry: ReturnType<typeof setTimeout> | undefined;
     // The client hands back a channel it still holds for the same topic, so a
     // rejoin waits until the last leave is done. A private channel checks the
     // player's token against the RLS policies.
@@ -109,15 +113,29 @@ export function useVillage(look: Look | null, onHeard?: (key: string, text: stri
               setStatus("here");
               const { look: l, spot: s } = me.current;
               if (l) c.track({ ...l, ...s });
-            } else if (s === "CHANNEL_ERROR" || s === "TIMED_OUT") setStatus("error");
+            } else if (s === "CHANNEL_ERROR" || s === "TIMED_OUT" || s === "CLOSED") {
+              // Dropped (network, a sleeping tab): leave cleanly and come back in a moment.
+              setStatus("error");
+              retry = setTimeout(() => setAttempt((n) => n + 1), RETRY_MS);
+            }
           });
       });
     return () => {
       gone = true;
+      clearTimeout(retry);
       channel.current = null;
       if (ch) leaving = supabase.removeChannel(ch);
     };
-  }, [handle, key, pop]);
+  }, [handle, key, pop, attempt]);
+
+  // Coming back to the tab after a drop: rejoin right away instead of waiting.
+  useEffect(() => {
+    const back = () => {
+      if (document.visibilityState === "visible" && status === "error") setAttempt((n) => n + 1);
+    };
+    document.addEventListener("visibilitychange", back);
+    return () => document.removeEventListener("visibilitychange", back);
+  }, [status]);
 
   // A changed look (the profile was edited) shows up for everyone.
   useEffect(() => {

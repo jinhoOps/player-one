@@ -16,6 +16,9 @@ export const supabase = createClient(url, key, {
     detectSessionInUrl: true,
     persistSession: true,
   },
+  // Background tabs throttle timers; the village's heartbeat runs in a worker so
+  // a hidden tab doesn't quietly drop out of presence.
+  realtime: { worker: true },
 });
 
 export function signInWithGoogle() {
