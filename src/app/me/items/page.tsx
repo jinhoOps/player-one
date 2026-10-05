@@ -1,9 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Card } from "@/components/Card";
 import { ItemForm } from "@/components/ItemForm";
 import { ItemIcon } from "@/components/ItemIcon";
+import { Modal } from "@/components/Modal";
 import { TopBar } from "@/components/TopBar";
 import x from "@/components/items.module.css";
 import {
@@ -157,9 +157,7 @@ export default function ItemsPage() {
       </main>
 
       {open && (
-        <div className={x.overlay} onClick={(e) => e.target === e.currentTarget && setOpen(null)}>
-          <div className={x.sheet} role="dialog" aria-modal="true" aria-label={open.item ? "아이템 편집" : "아이템 추가"}>
-            <Card title={open.item ? open.item.name : "아이템 추가"}>
+        <Modal title={open.item ? open.item.name : "아이템 추가"} onClose={() => setOpen(null)}>
               <ItemForm
                 key={open.item?.id ?? "new"}
                 item={open.item}
@@ -171,9 +169,7 @@ export default function ItemsPage() {
                 onDelete={open.item ? () => remove(open.item!.id) : undefined}
                 onClose={() => setOpen(null)}
               />
-            </Card>
-          </div>
-        </div>
+        </Modal>
       )}
     </>
   );

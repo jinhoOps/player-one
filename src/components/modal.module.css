@@ -1,0 +1,128 @@
+/* Modal (docs/DESIGN.md §6): a card on a cocoa-tinted dim, a bottom sheet on phones. */
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: calc(var(--space) * 4);
+  background: rgba(59, 47, 42, 0.22);
+  animation: fadeIn 160ms ease-out;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-height: calc(100vh - 32px);
+  background: var(--surface);
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--lift-hover);
+  outline: none;
+  /* pop: a little past, then settle (docs/BRAND.md §6) */
+  animation: popIn 520ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.sm {
+  max-width: 400px;
+}
+.md {
+  max-width: 480px;
+}
+.lg {
+  max-width: 640px;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--space) * 2);
+  padding: calc(var(--space) * 4) calc(var(--space) * 3) calc(var(--space) * 2) calc(var(--space) * 5);
+}
+.title {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: calc(var(--space) * 2);
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 400;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.close {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-pill);
+  color: var(--text-dim);
+  transition: background 120ms, color 120ms;
+}
+.close:hover {
+  background: var(--surface-soft);
+  color: var(--text);
+}
+
+/* Only the content scrolls; the title and actions stay put. */
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: calc(var(--space) * 1) calc(var(--space) * 5) calc(var(--space) * 5);
+}
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: calc(var(--space) * 2);
+  padding: calc(var(--space) * 3) calc(var(--space) * 5) calc(var(--space) * 5);
+  border-top: 1px dashed var(--line);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+}
+@keyframes popIn {
+  from { opacity: 0; transform: translateY(10px) scale(0.96); }
+}
+@keyframes sheetIn {
+  from { transform: translateY(100%); }
+}
+
+@media (max-width: 560px) {
+  .scrim {
+    place-items: end stretch;
+    padding: 0;
+  }
+  .panel {
+    max-width: none;
+    max-height: 88vh;
+    border-bottom: 0;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    animation: sheetIn 320ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  /* A grab bar says "this is a sheet". */
+  .head::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    width: 36px;
+    height: 4px;
+    margin-top: -10px;
+    border-radius: var(--radius-pill);
+    background: var(--line-strong);
+    transform: translateX(-50%);
+  }
+  .head {
+    position: relative;
+    padding-top: calc(var(--space) * 6);
+  }
+  .actions {
+    padding-bottom: calc(var(--space) * 5 + env(safe-area-inset-bottom));
+  }
+}

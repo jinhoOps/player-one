@@ -3,9 +3,11 @@
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { CharacterSheet } from "@/components/CharacterSheet";
+import { TopBar } from "@/components/TopBar";
 import { TrophyShelf } from "@/components/TrophyShelf";
 import { fetchPublicTrophies, type Trophy } from "@/lib/items";
-import { fetchPublicProfile, sheetFromPublic, type PublicProfile } from "@/lib/profile";
+import { fetchMyProfile, fetchPublicProfile, sheetFromPublic, type PublicProfile } from "@/lib/profile";
+import { useSession } from "@/lib/useSession";
 
 // Static export can't prebuild /p/[handle], so the handle comes from ?u= and
 // the profile is fetched client-side through get_public_profile (public fields only).
@@ -28,7 +30,7 @@ function PublicProfileView() {
   }, [handle]);
 
   const msg = (t: string) => (
-    <main style={{ minHeight: "100vh", display: "grid", placeItems: "center" }}>
+    <main style={{ minHeight: "calc(100vh - 64px)", display: "grid", placeItems: "center" }}>
       <p className="label">{t}</p>
     </main>
   );
@@ -45,10 +47,29 @@ function PublicProfileView() {
   );
 }
 
+/** The viewer's own handle, for the top bar's "공개 프로필" link. Signed out → none. */
+function useMyHandle() {
+  const userId = useSession()?.user.id;
+  const [mine, setMine] = useState<{ userId: string; handle: string | null } | null>(null);
+  useEffect(() => {
+    if (userId) fetchMyProfile(userId).then((p) => setMine({ userId, handle: p.handle }), () => {});
+  }, [userId]);
+  return mine?.userId === userId ? mine?.handle : null;
+}
+
+function Page() {
+  return (
+    <>
+      <TopBar handle={useMyHandle()} />
+      <PublicProfileView />
+    </>
+  );
+}
+
 export default function PublicProfilePage() {
   return (
     <Suspense>
-      <PublicProfileView />
+      <Page />
     </Suspense>
   );
 }

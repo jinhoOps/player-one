@@ -136,16 +136,7 @@ export function ItemForm({
   }
 
   return (
-    <form
-      className={s.form}
-      onSubmit={submit}
-      onKeyDown={(e) => {
-        if (e.key === "Escape") {
-          e.stopPropagation();
-          onClose();
-        }
-      }}
-    >
+    <form className={s.form} onSubmit={submit}>
       <div className={s.formRow}>
         <span className="label">분류</span>
         <div className={x.catPick} role="radiogroup" aria-label="분류">

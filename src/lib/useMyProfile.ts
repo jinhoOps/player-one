@@ -1,32 +1,49 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
-import { fetchMyProfile, updateMyProfile, type Profile, type ProfilePatch } from "./profile";
+import { useCallback, useEffect } from "react";
+import { create } from "zustand";
+import { fetchMyProfile, profileErrorText, updateMyProfile, type Profile, type ProfilePatch } from "./profile";
 import { useSession } from "./useSession";
+
+// One copy of the signed-in profile for the whole page, so a change made in
+// one place (the settings modal) shows everywhere (the sheet behind it).
+const useStore = create<{ userId: string | null; profile: Profile | null; error: string | null }>(() => ({
+  userId: null,
+  profile: null,
+  error: null,
+}));
+
+let loading: string | null = null;
 
 // Loads the signed-in user's profile; redirects to / when signed out.
 export function useMyProfile() {
   const session = useSession();
   const router = useRouter();
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const userId = session?.user.id;
+  const owner = useStore((s) => s.userId);
+  const profile = useStore((s) => (s.userId === userId ? s.profile : null));
+  const error = useStore((s) => s.error);
 
   useEffect(() => {
     if (session === null) router.replace("/");
-    if (!userId) return;
-    fetchMyProfile(userId).then(setProfile, (e) => setError(e.message));
-  }, [session, userId, router]);
+    if (!userId || owner === userId || loading === userId) return;
+    loading = userId;
+    fetchMyProfile(userId).then(
+      (p) => useStore.setState({ userId, profile: p, error: null }),
+      (e) => useStore.setState({ error: (e as Error).message }),
+    ).finally(() => {
+      loading = null;
+    });
+  }, [session, userId, owner, router]);
 
   const save = useCallback(
     async (patch: ProfilePatch) => {
       if (!userId) return;
       try {
-        setProfile(await updateMyProfile(userId, patch));
-        setError(null);
+        useStore.setState({ userId, profile: await updateMyProfile(userId, patch), error: null });
       } catch (e) {
-        setError((e as Error).message);
+        useStore.setState({ error: profileErrorText(e) });
         throw e;
       }
     },
@@ -34,4 +51,9 @@ export function useMyProfile() {
   );
 
   return { profile, error, save };
+}
+
+/** Forget the cached profile (after signing out or leaving). */
+export function clearMyProfile() {
+  useStore.setState({ userId: null, profile: null, error: null });
 }

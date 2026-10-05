@@ -22,6 +22,11 @@
   --leaf-soft: #e1f2e6;
   --sun: #f5b83d; /* sparkles, celebration */
   --sky: #4f9bd9; /* hover links, slot ↔ body line */
+  /* Irreversible actions only (the settings danger zone) — never for judging numbers. */
+  --danger: #c4452f;
+  --danger-edge: #93301f;
+  --danger-soft: #fdf3f1;
+  --danger-line: #f2cfc8;
 
   /* Rarity: tier badges, class emblem ring, equipment slot borders only. */
   --rarity-common: #a39a90;
