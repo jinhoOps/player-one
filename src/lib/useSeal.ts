@@ -6,8 +6,8 @@ import { prefersReducedMotion } from "./motion";
 
 /**
  * Seal effect (docs/BRAND.md, Effects): when a value turns private it gives a
- * little squish, as if tucked away, then frosts over (the blur is the `sealed`
- * CSS class, delayed until the squish lands).
+ * little squish, as if tucked away. The value stays readable to the owner;
+ * the lock icon beside it marks it private.
  */
 export function useSeal(ref: RefObject<HTMLElement | null>, sealed: boolean | undefined) {
   const prev = useRef(sealed);

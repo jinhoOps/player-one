@@ -71,7 +71,7 @@ export function CharacterSheet({
   data: SheetData;
   /** Owner view: edit stats in place and equipment through slot popovers. */
   owner?: { profile: Profile; save: (patch: ProfilePatch) => Promise<void> };
-  /** Owner view: dim/blur fields that are private so the owner sees what is sealed. */
+  /** Owner view: fields that are private (they squish when sealed; the value stays readable). */
   sealed?: Partial<Record<string, boolean>>;
   /** Owner view: per-field slot for a VisibilityToggle. */
   trailing?: (field: string) => ReactNode;
