@@ -150,6 +150,89 @@ export function groundAt(foot: Footprint, at: [number, number], out = new Vector
   return out;
 }
 
+const NRM = new Vector3();
+const AROUND = [
+  [1, 0],
+  [-1, 0],
+  [0, 1],
+  [0, -1],
+] as const;
+
+/** Top surface under (x, z) with its normal's y, or null. */
+function topAt(book: Object3D, top: number, x: number, z: number) {
+  ray.set(O.set(x, top, z), DOWN);
+  ray.near = 0;
+  ray.far = 50;
+  const hit = ray.intersectObject(book, true)[0];
+  if (!hit?.face) return null;
+  return { y: hit.point.y, up: NRM.copy(hit.face.normal).transformDirection(hit.object.matrixWorld).y };
+}
+
+const levels = new WeakMap<Object3D, number>();
+
+/** The height most of the village stands at: the median top surface over a grid. Cached per map. */
+function groundLevel({ book, box }: Footprint) {
+  const known = levels.get(book);
+  if (known !== undefined) return known;
+  const ys: number[] = [];
+  for (let i = 0; i < 15; i++) {
+    for (let j = 0; j < 15; j++) {
+      const x = box.min.x + (box.max.x - box.min.x) * (0.15 + (0.7 * i) / 14);
+      const z = box.min.z + (box.max.z - box.min.z) * (0.15 + (0.7 * j) / 14);
+      const t = topAt(book, box.max.y + 1, x, z);
+      if (t && t.up > 0.92) ys.push(t.y);
+    }
+  }
+  ys.sort((a, b) => a - b);
+  const level = ys.length ? ys[Math.floor(ys.length / 2)] : box.min.y;
+  levels.set(book, level);
+  return level;
+}
+
+/**
+ * Open, flat ground at or near a footprint fraction: level for a few steps all
+ * around, and not standing up above its surroundings (a roof, a treetop).
+ * Searched in widening rings; gives the original spot back if nothing nearby
+ * qualifies.
+ */
+export function openGroundNear(foot: Footprint, at: [number, number]): [number, number] {
+  const { book, box } = foot;
+  const top = box.max.y + 1;
+  const sizeX = box.max.x - box.min.x;
+  const sizeZ = box.max.z - box.min.z;
+  const level = groundLevel(foot);
+  const ok = (fx: number, fz: number) => {
+    if (fx < 0.08 || fx > 0.92 || fz < 0.08 || fz > 0.92) return false;
+    const x = box.min.x + sizeX * fx;
+    const z = box.min.z + sizeZ * fz;
+    const c = topAt(book, top, x, z);
+    // Flat, and at the height of the village's ground: not down in the river,
+    // not up on a roof, a bridge or the mill.
+    if (!c || c.up < 0.92 || Math.abs(c.y - level) > 0.025) return false;
+    const around: number[] = [];
+    for (const [dx, dz] of AROUND) {
+      // Level within a few steps: no walls, ledges or slopes right by you.
+      const n = topAt(book, top, x + dx * 0.04, z + dz * 0.04);
+      if (!n || n.up < 0.85 || Math.abs(n.y - c.y) > STEP_UP * 0.5) return false;
+      // A little further out: if most of it is well below, this is the top of something.
+      const far = topAt(book, top, x + dx * 0.15, z + dz * 0.15);
+      if (far) around.push(far.y);
+    }
+    const lower = around.filter((y) => y < c.y - 0.04).length;
+    return lower < 3;
+  };
+  if (ok(at[0], at[1])) return at;
+  for (let ring = 1; ring <= 20; ring++) {
+    const r = ring * 0.02;
+    for (let i = 0; i < 8 + ring * 2; i++) {
+      const a = (i / (8 + ring * 2)) * Math.PI * 2 + ring;
+      const c: [number, number] = [at[0] + Math.cos(a) * r, at[1] + Math.sin(a) * r];
+      if (ok(c[0], c[1])) return c;
+    }
+  }
+  return at;
+}
+
 const NDC = new Vector2();
 const PLANE = new Plane();
 const UP = new Vector3(0, 1, 0);

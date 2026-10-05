@@ -5,7 +5,7 @@ import { CLASSES, EQUIP_SLOTS, SLOT_LABELS, WEALTH_TIERS, type ClassKey } from "
 import { prefersReducedMotion } from "@/lib/motion";
 import type { Profile, ProfilePatch } from "@/lib/profile";
 import { ClassEmblem } from "./ClassEmblem";
-import { readSlot, SlotFields, UnitInput } from "./EquipFields";
+import { readGear, readSlot, SlotFields, UnitInput } from "./EquipFields";
 import { SlotIcon } from "./SlotIcon";
 import s from "./ui.module.css";
 
@@ -131,7 +131,8 @@ export function StatsForm(props: FormProps) {
 }
 
 export function EquipForm(props: FormProps) {
-  const read = (fd: FormData) => Object.assign({}, ...EQUIP_SLOTS.map((k) => readSlot(fd, k))) as ProfilePatch;
+  const read = (fd: FormData) =>
+    Object.assign({}, ...EQUIP_SLOTS.map((k) => readSlot(fd, k)), readGear(fd, EQUIP_SLOTS, props.profile)) as ProfilePatch;
   return (
     <PanelForm {...props} read={read}>
       {EQUIP_SLOTS.map((k) => (

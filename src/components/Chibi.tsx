@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { CatmullRomCurve3, Group, TubeGeometry, Vector3, type ShaderMaterial } from "three";
 import {
   applyMorph,
+  poseWalk,
   buildRig,
   CHIBI_URL,
   DEFAULT_HAIR,
@@ -17,7 +18,7 @@ import { isBooting, useEffectSkip, useGameEvent, useGameEvents } from "@/lib/eve
 import { EQUIP_SLOTS, type EquipSlotKey, type HairStyle } from "@/lib/game";
 import type { BodyMorph } from "@/lib/morph";
 import { prefersReducedMotion, useOneShot } from "@/lib/motion";
-import { HEADWEAR } from "./Headwear";
+import { HEADWEAR, type HeadwearKind } from "./Headwear";
 
 // Effect durations (ms), within the 1.8s cap of docs/BRAND.md.
 const POP_MS = 700;
@@ -106,10 +107,16 @@ export function Chibi({
   morph,
   equipped,
   interactive = false,
+  gait,
+  headKind,
 }: {
   morph: BodyMorph;
   equipped: Record<EquipSlotKey, boolean>;
   interactive?: boolean;
+  /** Walk cycle driven by the parent (village figures): phase in radians, amount 0–1. */
+  gait?: { current: { phase: number; amount: number } };
+  /** Which head gear (src/lib/gear.ts); the default kind if missing. */
+  headKind?: string;
 }) {
   const { scene } = useGLTF(CHIBI_URL);
   const rig = useMemo(() => buildRig(scene), [scene]);
@@ -121,6 +128,7 @@ export function Chibi({
   const pop = useOneShot();
   const flash = useOneShot();
   const flashSlot = useRef(0);
+  const swung = useRef(false);
 
   useEffect(() => {
     live.current = rig;
@@ -166,6 +174,12 @@ export function Chibi({
     if (root.current) root.current.scale.setScalar(pp >= 0 && pp < 1 ? Math.max(0.001, outBack(pp)) : 1);
 
     if (still) return;
+    // Walking (the village): limbs swing; settle back to standing when it stops.
+    const g = gait?.current;
+    if (g && (g.amount > 0.001 || swung.current)) {
+      poseWalk(r, g.phase, g.amount);
+      swung.current = g.amount > 0.001;
+    }
     const t = clock.elapsedTime;
     const b = t % 4.2;
     r.materials.eyes.uniforms.uLid.value = b < 0.12 ? Math.abs(b / 0.06 - 1) * 0.9 + 0.1 : 1;
@@ -174,8 +188,8 @@ export function Chibi({
   });
 
   const style = morph.hair ?? DEFAULT_HAIR[morph.body];
-  // The head slot holds one kind of gear for now; more kinds come as entries in HEADWEAR.
-  const gear = equipped.head ? HEADWEAR.cap : null;
+  // Head gear by kind (src/lib/gear.ts); an unknown or missing kind wears the default.
+  const gear = equipped.head ? HEADWEAR[(headKind ?? "") in HEADWEAR ? (headKind as HeadwearKind) : "cap"] : null;
   return (
     <group ref={root}>
       <primitive object={rig.model} />

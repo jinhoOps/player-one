@@ -19,6 +19,7 @@ import { Chibi } from "../Chibi";
 import {
   accelerate,
   hitDistance,
+  openGroundNear,
   dropPointAt,
   fromFrac,
   groundAt,
@@ -36,6 +37,7 @@ const FIGURE_SCALE = 0.07; // a figure stands ~1/70 of the book's width
 const WALK_SPEED = 0.3; // world units per second
 const ARRIVE = 0.003; // close enough to the target
 const STUCK_S = 1.5; // no closer to the target for this long: stop there
+const STEP_RATE = 12; // walk-cycle radians per second (a step every ~0.26 s)
 const HOLD_MS = 350; // press on your own figure this long to pick it up
 const LIFT = 0.045; // how high a picked-up figure dangles over the drop spot
 const SKY = "#4f9bd9"; // --sky: neutral markers (docs/BRAND.md §3)
@@ -130,6 +132,7 @@ function Figure({ v, foot, anchors, act, own }: { v: Villager; foot: Footprint; 
   const halted = useRef<string | null>(null);
   const walking = useRef(false);
   const squash = useRef(0);
+  const gait = useRef({ phase: 0, amount: 0 });
   /** Closest we've got to the current target, and since when. */
   const progress = useRef({ key: "", best: Infinity, since: 0 });
 
@@ -157,15 +160,16 @@ function Figure({ v, foot, anchors, act, own }: { v: Villager; foot: Footprint; 
     }
     const dropped = own?.takeDrop();
     if (dropped) pending.current = dropped;
-    // Someone else was dropped: they show up over the new spot and fall onto it.
     const warp = v.warp ?? 0;
     if (warp !== seenWarp.current) {
       seenWarp.current = warp;
-      if (!own) {
-        groundAt(foot, v.at, b.pos).y += 0.15;
-        b.vy = 0;
-        b.grounded = false;
-      }
+      // Dropped (picked up, or set down on arrival): appear over the new spot and
+      // fall onto it. Your own figure keeps the height it was carried at.
+      const y = b.pos.y;
+      groundAt(foot, v.at, b.pos);
+      b.pos.y = own ? Math.max(y, b.pos.y) : b.pos.y + 0.15;
+      b.vy = 0;
+      b.grounded = false;
     }
     const p = pending.current;
     if (p && Math.abs(p[0] - v.at[0]) < 1e-4 && Math.abs(p[1] - v.at[1]) < 1e-4) pending.current = null;
@@ -203,7 +207,11 @@ function Figure({ v, foot, anchors, act, own }: { v: Villager; foot: Footprint; 
     }
 
     g.position.copy(b.pos);
-    pz.position.y = walking.current ? Math.abs(Math.sin(t * 16)) * 0.0035 : 0;
+    // Walk cycle: limbs swing (Chibi) and the body bobs once per step.
+    const gt = gait.current;
+    gt.amount += ((walking.current ? 1 : 0) - gt.amount) * Math.min(1, dt * 10);
+    if (gt.amount > 0.001) gt.phase += dt * STEP_RATE;
+    pz.position.y = Math.abs(Math.sin(gt.phase)) * 0.003 * gt.amount;
     pz.rotation.x *= 0.8;
     pz.rotation.z *= 0.8;
     const s = squash.current;
@@ -254,7 +262,7 @@ function Figure({ v, foot, anchors, act, own }: { v: Villager; foot: Footprint; 
         <group scale={FIGURE_SCALE}>
           {/* Its own boundary: a loading figure must not take the others down. */}
           <Suspense fallback={null}>
-            <Chibi morph={v.morph} equipped={v.equipped} />
+            <Chibi morph={v.morph} equipped={v.equipped} headKind={v.headKind} gait={gait} />
           </Suspense>
         </group>
       </group>
@@ -608,6 +616,17 @@ function Scene({
   };
 
   useEffect(() => registerGrab(startGrab));
+
+  // Arriving: the spawn spot is random, so land on open ground near it rather
+  // than a roof or a treetop. Once per visit, before you've moved.
+  const me = villagers.find((v) => v.key === selfKey);
+  const landed = useRef(false);
+  useEffect(() => {
+    if (landed.current || !foot || !me || (me.warp ?? 0) !== 0) return;
+    landed.current = true;
+    const spot = openGroundNear(foot, me.at);
+    if (spot !== me.at) onDrop(spot);
+  }, [foot, me, onDrop]);
 
   const own: Own = {
     held: () => carry.current.point,

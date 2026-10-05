@@ -38,6 +38,8 @@ export type SheetData = {
   wealthTier?: number | null;
   /** The helmet is equipped but not drawn on the character. */
   hideHeadwear?: boolean;
+  /** Which head gear is worn (src/lib/gear.ts); the default kind when none was picked. */
+  headKind?: string;
   morph: BodyMorph;
 };
 
@@ -162,7 +164,7 @@ export function CharacterSheet({
       <EffectLayer />
       <div className={s.stageWrap}>
         <div className={s.stage} data-stage>
-          <CharacterViewport morph={data.morph} equipped={equipped} />
+          <CharacterViewport morph={data.morph} equipped={equipped} headKind={data.headKind} />
         </div>
         {/* Equipment rail: head to toe, in body order, along the stage edge. Kept
             outside the stage so its popovers aren't clipped by the rounded card. */}

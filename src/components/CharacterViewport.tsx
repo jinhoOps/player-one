@@ -206,9 +206,11 @@ function Ground() {
 export default function CharacterViewport({
   morph,
   equipped,
+  headKind,
 }: {
   morph: BodyMorph;
   equipped: Record<EquipSlotKey, boolean>;
+  headKind?: string;
 }) {
   const [active, setActive] = useState(true);
   const [still] = useState(prefersReducedMotion);
@@ -229,7 +231,7 @@ export default function CharacterViewport({
       flat
     >
       <Suspense fallback={null}>
-        <Chibi morph={morph} equipped={equipped} interactive />
+        <Chibi morph={morph} equipped={equipped} headKind={headKind} interactive />
       </Suspense>
       <RingBurst />
       <Ground />

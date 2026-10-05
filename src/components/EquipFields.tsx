@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { EquipSlotKey } from "@/lib/game";
+import { DEFAULT_KIND, GEAR_KINDS, hasKinds, type Gear, type KindSlot } from "@/lib/gear";
 import type { Profile, ProfilePatch } from "@/lib/profile";
 import s from "./ui.module.css";
 
@@ -37,6 +38,45 @@ export function readSlot(fd: FormData, slot: EquipSlotKey): ProfilePatch {
     patch[f.key] = raw === "" ? null : f.type === "number" ? Number(raw) : raw;
   }
   return patch as ProfilePatch;
+}
+
+/**
+ * Reads the kind chips of the given slots into one `gear` patch, keeping the
+ * kinds of slots not in the form. Returns {} when no kind field was submitted.
+ */
+export function readGear(fd: FormData, slots: readonly EquipSlotKey[], profile: Profile): ProfilePatch {
+  const gear: Gear = { ...profile.gear };
+  let touched = false;
+  for (const slot of slots) {
+    if (!hasKinds(slot) || !fd.has(`kind_${slot}`)) continue;
+    touched = true;
+    const k = String(fd.get(`kind_${slot}`) ?? "");
+    if (k) gear[slot] = k;
+    else delete gear[slot];
+  }
+  return touched ? { gear } : {};
+}
+
+/** Pick what's worn in a slot; tap the picked one again to go back to the default. */
+function KindChips({ slot, defaultValue }: { slot: KindSlot; defaultValue: string | undefined }) {
+  const [value, setValue] = useState(defaultValue ?? "");
+  const kinds = GEAR_KINDS[slot] as Record<string, string>;
+  return (
+    <span className={s.chips} role="group" aria-label="종류">
+      <input type="hidden" name={`kind_${slot}`} value={value} />
+      {Object.entries(kinds).map(([k, label]) => (
+        <button
+          key={k}
+          type="button"
+          className={s.chip}
+          aria-pressed={(value || DEFAULT_KIND[slot]) === k}
+          onClick={() => setValue(value === k ? "" : k)}
+        >
+          {label}
+        </button>
+      ))}
+    </span>
+  );
 }
 
 /** Number box with its unit inside, sized for a dense label-left form. */
@@ -124,7 +164,13 @@ export function ChoiceChips({
 /** The fields of one slot, as label-left rows of a `.form` grid. */
 export function SlotFields({ slot, profile, autoFocus }: { slot: EquipSlotKey; profile: Profile; autoFocus?: boolean }) {
   // Chip rows are not <label>s: a label would forward clicks on its text to the first chip.
-  return SLOT_FIELDS[slot].map((f, i) =>
+  const kind = hasKinds(slot) && (
+    <div key="kind" className={s.formRow}>
+      <span className="label">종류</span>
+      <KindChips slot={slot} defaultValue={profile.gear?.[slot]} />
+    </div>
+  );
+  const fields = SLOT_FIELDS[slot].map((f, i) =>
     f.choices ? (
       <div key={f.key} className={s.formRow}>
         <span className="label">{f.label}</span>
@@ -145,4 +191,5 @@ export function SlotFields({ slot, profile, autoFocus }: { slot: EquipSlotKey; p
       </label>
     ),
   );
+  return kind ? [kind, ...fields] : fields;
 }
