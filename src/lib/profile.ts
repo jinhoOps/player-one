@@ -1,6 +1,6 @@
 import { supabase } from "./supabase";
 import type { SheetData } from "@/components/CharacterSheet";
-import { ageFrom, type BodyType, type ClassKey, type HairStyle, type Visibility } from "./game";
+import { ageFrom, type BodyType, type ClassKey, type HairStyle, type Visibility, type VisibilityKey } from "./game";
 import { kindLabel, kindOf, type Gear } from "./gear";
 import { morphFromStats } from "./morph";
 
@@ -96,6 +96,8 @@ export type PublicProfile = {
   skeletal_muscle_kg?: number;
   body_fat_pct?: number;
   wealth_tier?: number;
+  /** Visibility keys that are private but hold a value (the sheet frosts them). */
+  sealed?: VisibilityKey[];
   equipment: {
     head: { equipped: boolean; kind?: string; head_cm?: number; hat_size?: string };
     top: { equipped: boolean; top_size?: string };
