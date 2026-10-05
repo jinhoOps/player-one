@@ -45,7 +45,7 @@ export function StatRow({ label, value, unit, digits = 1, range, sealed, trailin
     >
       <span className="label">{label}</span>
       <span className={s.statTrail}>{trailing}</span>
-      <span className={`num ${s.statValue} ${s.sealable} ${sealed ? s.sealed : ""}`}>
+      <span className={`num ${s.statValue} ${s.sealable}`}>
         {onEdit ? (
           <button type="button" className={s.editable} aria-label={`${label} 편집`}>
             {shown}

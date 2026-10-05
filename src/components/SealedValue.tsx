@@ -9,7 +9,7 @@ export function SealedValue({ sealed, children }: { sealed?: boolean; children: 
   const ref = useRef<HTMLSpanElement>(null);
   useSeal(ref, sealed);
   return (
-    <span ref={ref} className={`${s.sealable} ${sealed ? s.sealed : ""}`}>
+    <span ref={ref} className={s.sealable}>
       {children}
     </span>
   );
