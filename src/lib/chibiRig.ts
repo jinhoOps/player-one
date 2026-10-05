@@ -231,7 +231,12 @@ export type Rig = {
   headToBone: Matrix4;
   footY: number;
   materials: ReturnType<typeof toyMaterials>;
+  /** Limbs that swing when walking: rest pose and the side-to-side axis in the parent's space. */
+  gait: Record<GaitBone, { bone: Bone; rest: Quaternion; axis: Vector3 }>;
 };
+
+const GAIT_BONES = ["LeftUpLeg", "RightUpLeg", "LeftLeg", "RightLeg", "LeftArm", "RightArm"] as const;
+type GaitBone = (typeof GAIT_BONES)[number];
 
 const ARM = /^(Right|Left_)(Arm|ForeArm)_/;
 const HAND = /Hand/;
@@ -321,6 +326,17 @@ export function buildRig(scene: Object3D): Rig {
   turnWorld(bones.LeftForeArm, new Vector3(0, 0, 1), -0.12);
   const rest = new Map(body.skeleton.bones.map((b) => [b, b.scale.clone()]));
 
+  // Walking swings limbs about the figure's side-to-side axis (world x here, the
+  // figure facing +z), taken into each bone's parent space once, at rest.
+  const side = new Vector3(1, 0, 0);
+  const gait = Object.fromEntries(
+    GAIT_BONES.map((k) => {
+      const bone = bones[k];
+      const pw = bone.parent!.getWorldQuaternion(new Quaternion()).invert();
+      return [k, { bone, rest: bone.quaternion.clone(), axis: side.clone().applyQuaternion(pw).normalize() }];
+    }),
+  ) as Rig["gait"];
+
   model.updateMatrixWorld(true);
   const box = new Box3().setFromObject(model, true);
   const scale = FIGURE_HEIGHT / (box.max.y - box.min.y);
@@ -342,7 +358,29 @@ export function buildRig(scene: Object3D): Rig {
     headToBone: new Matrix4().copy(body.skeleton.boneInverses[hi]).multiply(body.bindMatrix),
     footY: bones.RightFoot.getWorldPosition(new Vector3()).y,
     materials,
+    gait,
   };
+}
+
+const SWING = new Quaternion();
+
+/**
+ * Walk cycle on top of the rest pose: legs swing opposite each other, the
+ * trailing knee bends, arms swing against the legs. `amount` 0 is standing.
+ */
+export function poseWalk(rig: Rig, phase: number, amount: number) {
+  const s = Math.sin(phase);
+  const swing = (k: GaitBone, angle: number) => {
+    const g = rig.gait[k];
+    g.bone.quaternion.copy(g.rest).premultiply(SWING.setFromAxisAngle(g.axis, angle * amount));
+  };
+  swing("LeftUpLeg", 0.55 * s);
+  swing("RightUpLeg", -0.55 * s);
+  // The leg swinging back bends at the knee.
+  swing("LeftLeg", 0.7 * Math.max(0, s));
+  swing("RightLeg", 0.7 * Math.max(0, -s));
+  swing("LeftArm", -0.45 * s);
+  swing("RightArm", 0.45 * s);
 }
 
 const RIGHT = (name: string) => name.replace(/_\d+$/, "").replace("Left_", "Right").replace(/^Left/, "Right");

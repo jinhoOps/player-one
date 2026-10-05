@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { CatmullRomCurve3, Group, TubeGeometry, Vector3, type ShaderMaterial } from "three";
 import {
   applyMorph,
+  poseWalk,
   buildRig,
   CHIBI_URL,
   DEFAULT_HAIR,
@@ -106,10 +107,13 @@ export function Chibi({
   morph,
   equipped,
   interactive = false,
+  gait,
 }: {
   morph: BodyMorph;
   equipped: Record<EquipSlotKey, boolean>;
   interactive?: boolean;
+  /** Walk cycle driven by the parent (village figures): phase in radians, amount 0–1. */
+  gait?: { current: { phase: number; amount: number } };
 }) {
   const { scene } = useGLTF(CHIBI_URL);
   const rig = useMemo(() => buildRig(scene), [scene]);
@@ -121,6 +125,7 @@ export function Chibi({
   const pop = useOneShot();
   const flash = useOneShot();
   const flashSlot = useRef(0);
+  const swung = useRef(false);
 
   useEffect(() => {
     live.current = rig;
@@ -166,6 +171,12 @@ export function Chibi({
     if (root.current) root.current.scale.setScalar(pp >= 0 && pp < 1 ? Math.max(0.001, outBack(pp)) : 1);
 
     if (still) return;
+    // Walking (the village): limbs swing; settle back to standing when it stops.
+    const g = gait?.current;
+    if (g && (g.amount > 0.001 || swung.current)) {
+      poseWalk(r, g.phase, g.amount);
+      swung.current = g.amount > 0.001;
+    }
     const t = clock.elapsedTime;
     const b = t % 4.2;
     r.materials.eyes.uniforms.uLid.value = b < 0.12 ? Math.abs(b / 0.06 - 1) * 0.9 + 0.1 : 1;
