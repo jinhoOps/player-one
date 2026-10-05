@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { SLOT_LABELS, type EquipSlotKey } from "@/lib/game";
 import type { Profile, ProfilePatch } from "@/lib/profile";
 import { Card } from "./Card";
-import { readSlot, SLOT_FIELDS, SlotFields } from "./EquipFields";
+import { readGear, readSlot, SLOT_FIELDS, SlotFields } from "./EquipFields";
 import s from "./ui.module.css";
 
 /** Size editor for one equipment slot (docs/DESIGN.md §6 EquipSlot: click → popover). */
@@ -51,7 +51,8 @@ export function EquipPopover({
 
   function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    save(readSlot(new FormData(e.currentTarget), slot));
+    const fd = new FormData(e.currentTarget);
+    save({ ...readSlot(fd, slot), ...readGear(fd, [slot], profile) });
   }
 
   return (

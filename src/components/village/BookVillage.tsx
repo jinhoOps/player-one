@@ -262,7 +262,7 @@ function Figure({ v, foot, anchors, act, own }: { v: Villager; foot: Footprint; 
         <group scale={FIGURE_SCALE}>
           {/* Its own boundary: a loading figure must not take the others down. */}
           <Suspense fallback={null}>
-            <Chibi morph={v.morph} equipped={v.equipped} gait={gait} />
+            <Chibi morph={v.morph} equipped={v.equipped} headKind={v.headKind} gait={gait} />
           </Suspense>
         </group>
       </group>

@@ -1,6 +1,7 @@
 import { supabase } from "./supabase";
 import type { SheetData } from "@/components/CharacterSheet";
 import { ageFrom, type BodyType, type ClassKey, type HairStyle, type Visibility } from "./game";
+import { kindLabel, kindOf, type Gear } from "./gear";
 import { morphFromStats } from "./morph";
 
 // Mirrors public.profiles (supabase/migrations).
@@ -16,6 +17,8 @@ export type Profile = {
   hair_style: HairStyle | null;
   /** The helmet stays equipped but the 3D character doesn't wear it. Public, like the hairstyle. */
   hide_headwear: boolean;
+  /** Kind worn per slot ({head: "beanie"}); see src/lib/gear.ts. */
+  gear: Gear;
   height_cm: number | null;
   weight_kg: number | null;
   skeletal_muscle_kg: number | null;
@@ -94,7 +97,7 @@ export type PublicProfile = {
   body_fat_pct?: number;
   wealth_tier?: number;
   equipment: {
-    head: { equipped: boolean; head_cm?: number; hat_size?: string };
+    head: { equipped: boolean; kind?: string; head_cm?: number; hat_size?: string };
     top: { equipped: boolean; top_size?: string };
     bottom: { equipped: boolean; waist_cm?: number; bottom_size?: string };
     shoes: { equipped: boolean; shoe_mm?: number };
@@ -133,13 +136,17 @@ export function sheetFromOwn(p: Profile): SheetData {
     jobTitle: p.job_title,
     stats: p,
     equipment: {
-      head: { equipped: p.head_cm != null || !!p.hat_size, detail: join(p.head_cm && `${p.head_cm}cm`, p.hat_size) },
+      head: {
+        equipped: p.head_cm != null || !!p.hat_size,
+        detail: join(kindLabel(p.gear, "head"), p.head_cm && `${p.head_cm}cm`, p.hat_size),
+      },
       top: { equipped: !!p.top_size, detail: join(p.top_size) },
       bottom: { equipped: p.waist_cm != null || !!p.bottom_size, detail: join(p.waist_cm && `${p.waist_cm}cm`, p.bottom_size) },
       shoes: { equipped: p.shoe_mm != null, detail: join(p.shoe_mm && `${p.shoe_mm}mm`) },
     },
     wealthTier: p.wealth_tier,
     hideHeadwear: p.hide_headwear,
+    headKind: kindOf(p.gear, "head"),
     morph: morphFromStats(p),
   };
 }
@@ -154,7 +161,10 @@ export function sheetFromPublic(p: PublicProfile): SheetData {
     jobTitle: p.job_title,
     stats: p,
     equipment: {
-      head: { equipped: e.head.equipped, detail: join(e.head.head_cm && `${e.head.head_cm}cm`, e.head.hat_size) },
+      head: {
+        equipped: e.head.equipped,
+        detail: join(kindLabel({ head: e.head.kind }, "head"), e.head.head_cm && `${e.head.head_cm}cm`, e.head.hat_size),
+      },
       top: { equipped: e.top.equipped, detail: join(e.top.top_size) },
       bottom: {
         equipped: e.bottom.equipped,
@@ -164,6 +174,7 @@ export function sheetFromPublic(p: PublicProfile): SheetData {
     },
     wealthTier: p.wealth_tier,
     hideHeadwear: !!p.hide_headwear,
+    headKind: kindOf({ head: e.head.kind }, "head"),
     // Private body fields are absent from the RPC response → neutral defaults.
     morph: morphFromStats(p),
   };

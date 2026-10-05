@@ -50,6 +50,10 @@ export default function MePage() {
       const fields = SLOT_FIELDS[slot].map((f) => f.key);
       if (fields.some(changed) && fields.some((k) => (patch[k] ?? null) != null)) emit({ type: "equip", slot });
     }
+    // A new kind in a slot (cap → beanie) sparkles like an equip.
+    for (const slot of EQUIP_SLOTS) {
+      if (patch.gear && (patch.gear[slot] ?? null) !== (before.gear?.[slot] ?? null)) emit({ type: "equip", slot });
+    }
     if (changed("wealth_tier") && patch.wealth_tier != null)
       emit({ type: "tier-change", rarity: WEALTH_TIERS[patch.wealth_tier].rarity });
     if (changed("class_key") && patch.class_key) emit({ type: "class-change" });

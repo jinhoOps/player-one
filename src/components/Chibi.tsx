@@ -18,7 +18,7 @@ import { isBooting, useEffectSkip, useGameEvent, useGameEvents } from "@/lib/eve
 import { EQUIP_SLOTS, type EquipSlotKey, type HairStyle } from "@/lib/game";
 import type { BodyMorph } from "@/lib/morph";
 import { prefersReducedMotion, useOneShot } from "@/lib/motion";
-import { HEADWEAR } from "./Headwear";
+import { HEADWEAR, type HeadwearKind } from "./Headwear";
 
 // Effect durations (ms), within the 1.8s cap of docs/BRAND.md.
 const POP_MS = 700;
@@ -108,12 +108,15 @@ export function Chibi({
   equipped,
   interactive = false,
   gait,
+  headKind,
 }: {
   morph: BodyMorph;
   equipped: Record<EquipSlotKey, boolean>;
   interactive?: boolean;
   /** Walk cycle driven by the parent (village figures): phase in radians, amount 0–1. */
   gait?: { current: { phase: number; amount: number } };
+  /** Which head gear (src/lib/gear.ts); the default kind if missing. */
+  headKind?: string;
 }) {
   const { scene } = useGLTF(CHIBI_URL);
   const rig = useMemo(() => buildRig(scene), [scene]);
@@ -185,8 +188,8 @@ export function Chibi({
   });
 
   const style = morph.hair ?? DEFAULT_HAIR[morph.body];
-  // The head slot holds one kind of gear for now; more kinds come as entries in HEADWEAR.
-  const gear = equipped.head ? HEADWEAR.cap : null;
+  // Head gear by kind (src/lib/gear.ts); an unknown or missing kind wears the default.
+  const gear = equipped.head ? HEADWEAR[(headKind ?? "") in HEADWEAR ? (headKind as HeadwearKind) : "cap"] : null;
   return (
     <group ref={root}>
       <primitive object={rig.model} />

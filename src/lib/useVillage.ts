@@ -20,6 +20,8 @@ export type Villager = {
   classKey: ClassKey | null;
   morph: BodyMorph;
   equipped: Record<EquipSlotKey, boolean>;
+  /** Head gear kind (src/lib/gear.ts); missing means the default. */
+  headKind?: string;
   /** Where they stand, as fractions of the book's footprint (x, z). */
   at: [number, number];
   /** Counts pick-up-and-drops: a change means "appear at `at`", not "walk there". */
@@ -43,6 +45,7 @@ export function lookFromPublic(p: PublicProfile): Look {
     morph: morphFromStats(p),
     // A hidden helmet is still equipped, just not worn on the figure.
     equipped: { head: e.head.equipped && !p.hide_headwear, top: e.top.equipped, bottom: e.bottom.equipped, shoes: e.shoes.equipped },
+    headKind: e.head.kind,
   };
 }
 
