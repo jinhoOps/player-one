@@ -70,6 +70,40 @@
   gap: calc(var(--space) * 2.5);
 }
 
+/* Card columns: invisible in a single column; side by side on a wide screen. */
+.col {
+  display: contents;
+}
+
+/* Wide screens: the panel's cards in two columns under the identity, so the
+   whole sheet fits one 16:9 screen down to 1280×720 (docs/DESIGN.md §6). */
+@media (min-width: 1000px) {
+  .sheet {
+    grid-template-columns: minmax(0, 1fr) clamp(560px, 46vw, 720px);
+  }
+  .side {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-content: start;
+    align-items: start;
+  }
+  .wide {
+    grid-column: 1 / -1;
+  }
+  .col {
+    display: flex;
+    flex-direction: column;
+    gap: inherit;
+    min-width: 0;
+  }
+}
+/* Big screens (1080p at 100%): the two columns leave room, so read a size up. */
+@media (min-width: 1700px) and (min-height: 1000px) {
+  .side {
+    zoom: 1.12;
+  }
+}
+
 /* Identity: name and level on one line, title under, actions to the right. */
 .identity {
   display: flex;

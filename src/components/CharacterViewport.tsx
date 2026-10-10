@@ -38,7 +38,7 @@ const CAMERA: [number, number, number] = [0, 0.55, 2.1];
 const POLAR = Math.PI / 2 - Math.atan2(CAMERA[1] - TARGET[1], CAMERA[2]);
 const FLOOR_SCALE = 0.5;
 // Narrowest stage aspect (width / height) that still shows the whole figure.
-const MIN_ASPECT = 0.62;
+const MIN_ASPECT = 0.7;
 
 // Effect durations (ms), all within the 1.8s cap of docs/BRAND.md.
 const RING_MS = 900;
