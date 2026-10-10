@@ -306,6 +306,10 @@
   font-size: 12px;
   color: var(--text-dim);
 }
+/* The class picker spans the form, so its hint does too. */
+.formRow:has(.classPick) + .formHint {
+  grid-column: 1 / -1;
+}
 .formActions {
   grid-column: 1 / -1;
   display: flex;
@@ -385,8 +389,10 @@
   color: var(--leaf);
   font-weight: 600;
 }
-/* Class picker: emblem + name buttons, three or so to a row. */
+/* Class picker: emblem + name buttons under its label, across the whole form
+   width so a narrow card still fits two or more to a row. */
 .classPick {
+  grid-column: 1 / -1;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
   gap: var(--space);

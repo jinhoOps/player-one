@@ -188,7 +188,7 @@ export function CharacterSheet({
             </button>
           ))}
         </div>
-        <Card>
+        <Card className={s.wide}>
           <div className={s.identity}>
             <div className={s.identityText}>
               <div className={s.identityName}>
@@ -200,106 +200,111 @@ export function CharacterSheet({
             {identityActions && <div className={s.identityActions}>{identityActions}</div>}
           </div>
         </Card>
-        {banner}
+        {banner && <div className={s.wide}>{banner}</div>}
 
-        <div data-panel="stats">
-          <Card title="기본 스탯" action={editButton("stats")}>
-            {owner && edit?.panel === "stats" ? (
-              <StatsForm profile={owner.profile} onSave={owner.save} onClose={close} focus={edit.focus} />
-            ) : (
-            <div className={s.grid}>
-              {STAT_ROWS.map((r) => (
-                <StatRow
-                  key={r.key}
-                  label={r.label}
-                  unit={r.unit}
-                  value={data.stats[r.key]}
-                  range={r.range}
-                  sealed={sealed[r.key]}
-                  frost={!owner}
-                  trailing={trailing?.(r.key)}
-                  onEdit={owner ? () => setEdit({ panel: "stats", focus: r.key }) : undefined}
-                />
-              ))}
-            </div>
-            )}
-          </Card>
+        {/* Two columns on a wide screen: the body, then who you are and what you show. */}
+        <div className={s.col}>
+          <div data-panel="stats">
+            <Card title="기본 스탯" action={editButton("stats")}>
+              {owner && edit?.panel === "stats" ? (
+                <StatsForm profile={owner.profile} onSave={owner.save} onClose={close} focus={edit.focus} />
+              ) : (
+              <div className={s.grid}>
+                {STAT_ROWS.map((r) => (
+                  <StatRow
+                    key={r.key}
+                    label={r.label}
+                    unit={r.unit}
+                    value={data.stats[r.key]}
+                    range={r.range}
+                    sealed={sealed[r.key]}
+                    frost={!owner}
+                    trailing={trailing?.(r.key)}
+                    onEdit={owner ? () => setEdit({ panel: "stats", focus: r.key }) : undefined}
+                  />
+                ))}
+              </div>
+              )}
+            </Card>
+          </div>
+
+          <div data-panel="equip">
+            <Card title="장비" action={editButton("equip")}>
+              {owner && edit?.panel === "equip" ? (
+                <EquipForm profile={owner.profile} onSave={owner.save} onClose={close} focus={edit.focus} />
+              ) : (
+              <div className={s.grid}>
+                {EQUIP_SLOTS.map((k) => (
+                  <div key={k} className={`${s.tile} ${owner ? s.tapTile : ""}`} {...tap("equip", k)} aria-label={owner ? `${SLOT_LABELS[k]} 입력` : undefined}>
+                    <span className={s.tileIcon} title={SLOT_LABELS[k]}>
+                      <SlotIcon slot={k} size={18} />
+                      <span className={s.srOnly}>{SLOT_LABELS[k]}</span>
+                    </span>
+                    {k === "head" && owner && data.equipment.head.equipped ? (
+                      <span className={s.tileChips}>
+                        <WearToggle
+                          label="투구"
+                          shown={!data.hideHeadwear}
+                          onChange={(shown) => owner.save({ hide_headwear: !shown })}
+                        />
+                        {trailing?.(k)}
+                      </span>
+                    ) : (
+                      trailing?.(k)
+                    )}
+                    <span className={`num ${s.tileValue}`}>
+                      <SealedValue sealed={sealed[k]} frost={!owner}>
+                        {data.equipment[k].detail ?? (data.equipment[k].equipped ? "장착" : "—")}
+                      </SealedValue>
+                    </span>
+                  </div>
+                ))}
+              </div>
+              )}
+            </Card>
+          </div>
         </div>
 
-        <div data-panel="equip">
-          <Card title="장비" action={editButton("equip")}>
-            {owner && edit?.panel === "equip" ? (
-              <EquipForm profile={owner.profile} onSave={owner.save} onClose={close} focus={edit.focus} />
-            ) : (
-            <div className={s.grid}>
-              {EQUIP_SLOTS.map((k) => (
-                <div key={k} className={`${s.tile} ${owner ? s.tapTile : ""}`} {...tap("equip", k)} aria-label={owner ? `${SLOT_LABELS[k]} 입력` : undefined}>
-                  <span className={s.tileIcon} title={SLOT_LABELS[k]}>
-                    <SlotIcon slot={k} size={18} />
-                    <span className={s.srOnly}>{SLOT_LABELS[k]}</span>
+        <div className={s.col}>
+          <div data-panel="class">
+            <Card title="클래스 · 자산" action={editButton("class")}>
+              {owner && edit?.panel === "class" ? (
+                <ClassForm profile={owner.profile} onSave={owner.save} onClose={close} focus={edit.focus} />
+              ) : (
+              <div className={s.grid}>
+                <div className={`${s.tile} ${owner ? s.tapTile : ""}`} {...tap("class", "class")} aria-label={owner ? "클래스 입력" : undefined}>
+                  <span className="label">클래스</span>
+                  {trailing?.("class")}
+                  <span className={`${s.tileValue} ${s.classValue}`}>
+                    {data.classKey && <ClassEmblem classKey={data.classKey} size={22} />}
+                    <SealedValue sealed={sealed.class} frost={!owner}>{cls ? cls.name : "—"}</SealedValue>
                   </span>
-                  {k === "head" && owner && data.equipment.head.equipped ? (
-                    <span className={s.tileChips}>
-                      <WearToggle
-                        label="투구"
-                        shown={!data.hideHeadwear}
-                        onChange={(shown) => owner.save({ hide_headwear: !shown })}
-                      />
-                      {trailing?.(k)}
+                </div>
+                {data.jobTitle !== undefined && (
+                  <div className={`${s.tile} ${owner ? s.tapTile : ""}`} {...tap("class", "job_title")} aria-label={owner ? "직업 입력" : undefined}>
+                    <span className="label">직업</span>
+                    {trailing?.("job_title")}
+                    <span className={s.tileValue}>
+                      <SealedValue sealed={sealed.job_title} frost={!owner}>{data.jobTitle || "—"}</SealedValue>
                     </span>
-                  ) : (
-                    trailing?.(k)
-                  )}
-                  <span className={`num ${s.tileValue}`}>
-                    <SealedValue sealed={sealed[k]} frost={!owner}>
-                      {data.equipment[k].detail ?? (data.equipment[k].equipped ? "장착" : "—")}
+                  </div>
+                )}
+                <div className={`${s.tile} ${s.tileWide} ${owner ? s.tapTile : ""}`} {...tap("class", "wealth")} aria-label={owner ? "자산 티어 입력" : undefined}>
+                  <span className="label">자산 티어</span>
+                  {trailing?.("wealth")}
+                  <span className={s.tileValue}>
+                    <SealedValue sealed={sealed.wealth} frost={!owner}>
+                      {data.wealthTier != null ? <TierBadge tier={data.wealthTier} /> : "—"}
                     </SealedValue>
                   </span>
                 </div>
-              ))}
-            </div>
-            )}
-          </Card>
-        </div>
-
-        <div data-panel="class">
-          <Card title="클래스 · 자산" action={editButton("class")}>
-            {owner && edit?.panel === "class" ? (
-              <ClassForm profile={owner.profile} onSave={owner.save} onClose={close} focus={edit.focus} />
-            ) : (
-            <div className={s.grid}>
-              <div className={`${s.tile} ${owner ? s.tapTile : ""}`} {...tap("class", "class")} aria-label={owner ? "클래스 입력" : undefined}>
-                <span className="label">클래스</span>
-                {trailing?.("class")}
-                <span className={`${s.tileValue} ${s.classValue}`}>
-                  {data.classKey && <ClassEmblem classKey={data.classKey} size={22} />}
-                  <SealedValue sealed={sealed.class} frost={!owner}>{cls ? cls.name : "—"}</SealedValue>
-                </span>
               </div>
-              {data.jobTitle !== undefined && (
-                <div className={`${s.tile} ${owner ? s.tapTile : ""}`} {...tap("class", "job_title")} aria-label={owner ? "직업 입력" : undefined}>
-                  <span className="label">직업</span>
-                  {trailing?.("job_title")}
-                  <span className={s.tileValue}>
-                    <SealedValue sealed={sealed.job_title} frost={!owner}>{data.jobTitle || "—"}</SealedValue>
-                  </span>
-                </div>
               )}
-              <div className={`${s.tile} ${s.tileWide} ${owner ? s.tapTile : ""}`} {...tap("class", "wealth")} aria-label={owner ? "자산 티어 입력" : undefined}>
-                <span className="label">자산 티어</span>
-                {trailing?.("wealth")}
-                <span className={s.tileValue}>
-                  <SealedValue sealed={sealed.wealth} frost={!owner}>
-                    {data.wealthTier != null ? <TierBadge tier={data.wealthTier} /> : "—"}
-                  </SealedValue>
-                </span>
-              </div>
-            </div>
-            )}
-          </Card>
-        </div>
+            </Card>
+          </div>
 
-        {footer}
+          {footer}
+        </div>
       </div>
     </div>
   );
