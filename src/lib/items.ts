@@ -12,6 +12,28 @@ export const CATEGORIES = {
   care: { label: "뷰티·케어", hint: "드라이기·면도기·향수·전동칫솔" },
 } as const;
 export type BuiltInCategory = keyof typeof CATEGORIES;
+
+// Words that give an item's category away, beyond the hints above (brands, everyday names).
+const CATEGORY_WORDS: Record<BuiltInCategory, string[]> = {
+  digital: ["맥북", "아이폰", "아이패드", "갤럭시", "에어팟", "버즈", "애플워치", "워치", "헤드폰", "스피커", "케이블", "허브", "보조배터리", "ssd", "pc"],
+  camera: ["카메라", "필름", "스트로보", "짐벌", "고프로", "후지", "소니 a"],
+  bag: ["가방", "파우치", "선글라스", "모자", "신발", "운동화", "스니커즈", "목걸이", "반지"],
+  kitchen: ["프라이팬", "후라이팬", "그릇", "접시", "컵", "머그", "수저", "커피", "에어프라이어", "전자레인지", "밥솥", "토스터"],
+  living: ["로봇청소기", "선풍기", "제습기", "베개", "이불", "매트리스", "의자", "책상", "소파", "커튼", "세탁기", "냉장고", "tv"],
+  hobby: ["닌텐도", "스위치", "플스", "피아노", "텐트", "랜턴", "킥보드", "덤벨", "요가", "레고", "책", "만년필"],
+  care: ["고데기", "로션", "크림", "샴푸", "칫솔", "트리머", "마사지"],
+};
+
+/** A built-in category the item's name points to, or null when nothing matches. */
+export function guessCategory(name: string): BuiltInCategory | null {
+  const n = name.toLowerCase().replace(/\s+/g, "");
+  if (!n) return null;
+  for (const k of CATEGORY_KEYS) {
+    const words = [...CATEGORIES[k].hint.split("·"), ...CATEGORY_WORDS[k]];
+    if (words.some((w) => n.includes(w.toLowerCase().replace(/\s+/g, "")))) return k;
+  }
+  return null;
+}
 export type CategoryKey = BuiltInCategory | "custom";
 export const CATEGORY_KEYS = Object.keys(CATEGORIES) as BuiltInCategory[];
 
